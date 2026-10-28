@@ -12,7 +12,7 @@ type Auswahl = { id: string; name: string };
 type Props = {
   aktion: (zustand: FormularZustand, form: FormData) => Promise<FormularZustand>;
   einsatz?: Einsatz;
-  vorauswahl?: { kundeId?: string; anlageId?: string };
+  vorauswahl?: { kundeId?: string; anlageId?: string; datum?: string };
   kunden: Auswahl[];
   anlagen: (Auswahl & { kundeId: string })[];
   mitarbeiter: Auswahl[];
@@ -69,7 +69,7 @@ export function EinsatzFormular({ aktion, einsatz: e, vorauswahl, kunden, anlage
       <div className="grid grid-cols-2 gap-3 sm:col-span-2">
         <div>
           <label className="feld-label" htmlFor="datum">Datum *</label>
-          <input className="eingabe" id="datum" name="datum" type="date" defaultValue={e?.datum ?? heute} required />
+          <input className="eingabe" id="datum" name="datum" type="date" defaultValue={e?.datum ?? vorauswahl?.datum ?? heute} required />
         </div>
         <div>
           <label className="feld-label" htmlFor="uhrzeit">Uhrzeit</label>

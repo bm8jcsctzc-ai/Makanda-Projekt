@@ -3,6 +3,7 @@ import path from "node:path";
 import { mkdirSync } from "node:fs";
 import { count } from "drizzle-orm";
 import { START_VORLAGEN } from "@/lib/checklisten-vorlagen";
+import { STANDARD_BETREFF, STANDARD_TEXT } from "@/lib/wartungsplan";
 import * as schema from "./schema";
 
 // Ohne DATABASE_URL läuft eine eingebaute Postgres-Datenbank (PGlite) im Ordner ./data.
@@ -35,10 +36,14 @@ async function verbinden(): Promise<Db> {
   return db as unknown as Db;
 }
 
-/** Legt beim allerersten Start die Checklisten-Vorlagen an. */
+/** Legt beim allerersten Start die Checklisten-Vorlagen und die Einstellungen an. */
 async function startdatenAnlegen(db: Db) {
   const [{ anzahl }] = await db.select({ anzahl: count() }).from(schema.checklisteVorlage);
   if (anzahl === 0) await db.insert(schema.checklisteVorlage).values(START_VORLAGEN);
+  await db
+    .insert(schema.einstellungen)
+    .values({ id: 1, erinnerungBetreff: STANDARD_BETREFF, erinnerungText: STANDARD_TEXT })
+    .onConflictDoNothing();
 }
 
 // Eine Verbindung pro Prozess, auch wenn Next.js im Entwicklungsmodus Module neu lädt.

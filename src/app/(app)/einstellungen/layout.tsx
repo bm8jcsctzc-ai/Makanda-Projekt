@@ -6,6 +6,8 @@ export default async function EinstellungenLayout({ children }: { children: Reac
   const b = await benoetigeBenutzer(DARF_PLANEN);
   const reiter: NavPunkt[] = [
     { href: "/einstellungen/checklisten", titel: "Checklisten" },
+    { href: "/einstellungen/wartung", titel: "Wartung & E-Mails" },
+    { href: "/einstellungen/emails", titel: "E-Mail-Protokoll" },
     ...(DARF_BENUTZER.includes(b.rolle) ? [{ href: "/einstellungen/benutzer", titel: "Benutzer" }] : []),
   ];
   return (

@@ -54,6 +54,10 @@ export function KundenFormular({ aktion, kunde: k, zurueck }: Props) {
         <label className="feld-label" htmlFor="hinweise">Hinweise für die Monteure</label>
         <textarea className="eingabe" id="hinweise" name="hinweise" rows={2} placeholder="z. B. Schlüssel beim Nachbarn, Hund im Haus, Heizung im Keller links" defaultValue={k?.hinweise ?? ""} />
       </div>
+      <label className="flex items-start gap-2 text-sm sm:col-span-2">
+        <input type="checkbox" name="erinnerungen" defaultChecked={k?.erinnerungen ?? true} className="mt-0.5 size-4" />
+        <span>Wartungserinnerungen per E-Mail schicken <span className="text-slate-500">(abwählen, wenn der Kunde keine E-Mails möchte)</span></span>
+      </label>
       <div className="flex gap-2 sm:col-span-2">
         <button className="btn-primaer" disabled={laeuft}>{laeuft ? "Speichern …" : "Speichern"}</button>
         <Link className="btn" href={zurueck}>Abbrechen</Link>

@@ -10,7 +10,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const planer = DARF_PLANEN.includes(b.rolle);
   const punkte: NavPunkt[] = [
     { href: "/", titel: "Heute" },
-    ...(planer ? [{ href: "/einsaetze", titel: "Einsätze" }] : []),
+    ...(planer ? [{ href: "/einsaetze", titel: "Einsätze" }, { href: "/wartung", titel: "Wartung" }] : []),
     { href: "/kunden", titel: "Kunden" },
     ...(DARF_FINANZEN.includes(b.rolle) ? [{ href: "/finanzen", titel: "Finanzen" }] : []),
     ...(planer ? [{ href: "/einstellungen", titel: "Einstellungen" }] : []),

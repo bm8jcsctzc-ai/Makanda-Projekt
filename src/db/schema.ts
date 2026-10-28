@@ -7,6 +7,7 @@ import {
   pgTable,
   text,
   timestamp,
+  unique,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -103,6 +104,8 @@ export const kunde = pgTable("kunde", {
   email: text("email"),
   // Hinweise für die Monteure, z. B. "Schlüssel beim Nachbarn", "Hund"
   hinweise: text("hinweise"),
+  // Darf der Kunde Wartungserinnerungen per E-Mail bekommen?
+  erinnerungen: boolean("erinnerungen").notNull().default(true),
   taifunKundennr: text("taifun_kundennr"),
   erstelltAm: timestamp("erstellt_am", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -227,3 +230,50 @@ export type ChecklisteVorlage = typeof checklisteVorlage.$inferSelect;
 export type ChecklisteErgebnis = typeof checklisteErgebnis.$inferSelect;
 export type Fotokategorie = (typeof fotokategorie.enumValues)[number];
 export type Foto = typeof foto.$inferSelect;
+
+// ---------- Wartungsplan, Erinnerungen, E-Mails ----------
+
+/** Eine einzige Zeile (id = 1) mit den Einstellungen des Betriebs */
+export const einstellungen = pgTable("einstellungen", {
+  id: integer("id").primaryKey().default(1),
+  firmenname: text("firmenname").notNull().default(""),
+  firmaTelefon: text("firma_telefon"),
+  // Empfänger für Wochenbericht und Erinnerungs-Übersicht
+  bueroEmail: text("buero_email"),
+  erinnerungenAktiv: boolean("erinnerungen_aktiv").notNull().default(true),
+  erinnerungVorlaufMonate: integer("erinnerung_vorlauf_monate").notNull().default(3),
+  erinnerungBetreff: text("erinnerung_betreff").notNull(),
+  erinnerungText: text("erinnerung_text").notNull(),
+  wochenberichtAktiv: boolean("wochenbericht_aktiv").notNull().default(true),
+  // Ab so vielen Wartungen pro Monat wird gewarnt (zusätzlich zur automatischen Erkennung)
+  haeufungGrenze: integer("haeufung_grenze"),
+});
+
+export const wartungErinnerung = pgTable(
+  "wartung_erinnerung",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    anlageId: uuid("anlage_id").notNull().references(() => anlage.id, { onDelete: "cascade" }),
+    // Für welchen Fälligkeitstermin erinnert wurde – pro Termin nur eine Erinnerung
+    faelligAm: date("faellig_am").notNull(),
+    anKunde: text("an_kunde"),
+    gesendetAm: timestamp("gesendet_am", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("wartung_erinnerung_einmalig").on(t.anlageId, t.faelligAm)],
+);
+
+export const mailstatus = pgEnum("mailstatus", ["gesendet", "testmodus", "fehler"]);
+
+export const mailProtokoll = pgTable("mail_protokoll", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  an: text("an").notNull(),
+  betreff: text("betreff").notNull(),
+  text: text("text").notNull(),
+  anhang: text("anhang"),
+  status: mailstatus("status").notNull(),
+  fehler: text("fehler"),
+  erstelltAm: timestamp("erstellt_am", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type Einstellungen = typeof einstellungen.$inferSelect;
+export type MailProtokoll = typeof mailProtokoll.$inferSelect;

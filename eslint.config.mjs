@@ -18,6 +18,8 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      // Browser-Tests sind einfache Node-Skripte
+      "e2e/**",
     ],
   },
 ];

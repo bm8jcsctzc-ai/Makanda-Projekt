@@ -4,8 +4,26 @@ import { EinsatzListe } from "@/components/EinsatzListe";
 import { einsatz } from "@/db/schema";
 import { benoetigeBenutzer } from "@/lib/auth";
 import { ladeEinsaetze, nachDatum, tagesTitel } from "@/lib/einsaetze";
-import { heute } from "@/lib/format";
+import { ladeEinstellungen } from "@/lib/einstellungen";
+import { formatMonat, heute } from "@/lib/format";
+import { ladeWartungen } from "@/lib/wartung-daten";
+import { monatsLast, naechsteMonate, wartungsStatus } from "@/lib/wartungsplan";
 import { DARF_PLANEN, plusTage } from "@/lib/technik";
+
+async function wartungsHinweis(stichtag: string) {
+  const [e, zeilen] = await Promise.all([ladeEinstellungen(), ladeWartungen(stichtag)]);
+  const status = zeilen.map((z) => wartungsStatus(z.a.naechsteWartungAm, stichtag, e.erinnerungVorlaufMonate));
+  const last = monatsLast(
+    zeilen.map((z) => z.a.naechsteWartungAm).filter((d): d is string => !!d),
+    naechsteMonate(stichtag.slice(0, 7), 12),
+    e.haeufungGrenze,
+  );
+  return {
+    ueberfaellig: status.filter((s) => s === "ueberfaellig").length,
+    baldOhneTermin: zeilen.filter((z, i) => status[i] === "bald" && !z.geplantAm).length,
+    haeufungen: last.monate.filter((m) => m.auffaellig).map((m) => m.monat),
+  };
+}
 
 export default async function Heute() {
   const b = await benoetigeBenutzer();
@@ -21,6 +39,7 @@ export default async function Heute() {
     planer ? ladeEinsaetze({ von: stichtag, bis: stichtag }) : Promise.resolve([]),
   ]);
   const hatEigene = meineHeute.length + meineBald.length + meineLiegengeblieben.length > 0;
+  const wartung = planer ? await wartungsHinweis(stichtag) : null;
 
   return (
     <div className="space-y-6">
@@ -57,6 +76,22 @@ export default async function Heute() {
             </div>
           ))}
         </section>
+      )}
+
+      {wartung && (wartung.ueberfaellig > 0 || wartung.baldOhneTermin > 0 || wartung.haeufungen.length > 0) && (
+        <Link href="/wartung" className="block rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 hover:bg-amber-100">
+          <p className="font-semibold">Wartungsplan</p>
+          <p className="mt-1">
+            {[
+              wartung.ueberfaellig > 0 && `${wartung.ueberfaellig} überfällig`,
+              wartung.baldOhneTermin > 0 && `${wartung.baldOhneTermin} bald fällig ohne Termin`,
+              wartung.haeufungen.length > 0 && `viele Wartungen im ${wartung.haeufungen.map(formatMonat).join(", ")}`,
+            ]
+              .filter(Boolean)
+              .join(" · ")}{" "}
+            →
+          </p>
+        </Link>
       )}
 
       {planer && (

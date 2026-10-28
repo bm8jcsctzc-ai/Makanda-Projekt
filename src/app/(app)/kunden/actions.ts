@@ -26,6 +26,7 @@ export async function speichereKunde(id: string | null, _: FormularZustand, form
     telefon: optionalerText(form, "telefon"),
     email,
     hinweise: optionalerText(form, "hinweise"),
+    erinnerungen: form.get("erinnerungen") === "on",
     taifunKundennr: optionalerText(form, "taifunKundennr"),
   };
   const db = await getDb();

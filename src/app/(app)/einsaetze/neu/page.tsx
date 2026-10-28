@@ -1,5 +1,5 @@
 import { Seitenkopf } from "@/components/Seitenkopf";
-import { istUuid } from "@/lib/aktionen";
+import { istDatum, istUuid } from "@/lib/aktionen";
 import { benoetigeBenutzer } from "@/lib/auth";
 import { einsatzAuswahl } from "@/lib/auswahl";
 import { heute } from "@/lib/format";
@@ -7,9 +7,9 @@ import { DARF_PLANEN } from "@/lib/technik";
 import { speichereEinsatz } from "../actions";
 import { EinsatzFormular } from "../EinsatzFormular";
 
-export default async function NeuerEinsatz({ searchParams }: { searchParams: Promise<{ kunde?: string; anlage?: string }> }) {
+export default async function NeuerEinsatz({ searchParams }: { searchParams: Promise<{ kunde?: string; anlage?: string; datum?: string }> }) {
   await benoetigeBenutzer(DARF_PLANEN);
-  const { kunde, anlage } = await searchParams;
+  const { kunde, anlage, datum } = await searchParams;
   const auswahl = await einsatzAuswahl();
   return (
     <>
@@ -19,7 +19,11 @@ export default async function NeuerEinsatz({ searchParams }: { searchParams: Pro
       ) : (
         <EinsatzFormular
           aktion={speichereEinsatz.bind(null, null)}
-          vorauswahl={{ kundeId: istUuid(kunde) ? kunde : undefined, anlageId: istUuid(anlage) ? anlage : undefined }}
+          vorauswahl={{
+            kundeId: istUuid(kunde) ? kunde : undefined,
+            anlageId: istUuid(anlage) ? anlage : undefined,
+            datum: datum && istDatum(datum) ? datum : undefined,
+          }}
           {...auswahl}
           heute={heute()}
           zurueck={istUuid(kunde) ? `/kunden/${kunde}` : "/einsaetze"}

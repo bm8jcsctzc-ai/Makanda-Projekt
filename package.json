@@ -9,12 +9,13 @@
     "lint": "eslint",
     "test": "vitest run",
     "db:migration": "drizzle-kit generate",
-    "test:e2e": "node e2e/finanzen.js && node e2e/technik.js"
+    "test:e2e": "node e2e/finanzen.js && node e2e/technik.js && node e2e/wartung.js"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.13",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.4",
+    "exceljs": "^4.4.0",
     "jose": "^6.2.13",
     "next": "15.5.27",
     "postgres": "^3.4.9",
