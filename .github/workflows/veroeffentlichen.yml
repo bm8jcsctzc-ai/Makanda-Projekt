@@ -1,0 +1,59 @@
+# Baut die App und stellt sie auf GitHub Pages online. Läuft bei jeder Änderung auf main.
+# Vorher werden neue Datenbank-Änderungen in Supabase eingespielt (Secret DATABASE_URL).
+name: Veröffentlichen
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  bauen:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Tests
+        run: npm test
+      - name: Datenbank aktualisieren
+        if: env.DATABASE_URL != ''
+        run: npx tsx scripts/migrieren.mts
+      - name: Hinweis Datenbank
+        if: env.DATABASE_URL == ''
+        run: echo "::warning::Secret DATABASE_URL fehlt – die Datenbank wurde nicht aktualisiert. Siehe docs/ONLINE.md."
+      - name: App bauen
+        run: npm run build
+        env:
+          NEXT_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+      - run: touch out/.nojekyll
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+
+  online-stellen:
+    needs: bauen
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.pages.outputs.page_url }}
+    steps:
+      - id: pages
+        uses: actions/deploy-pages@v4

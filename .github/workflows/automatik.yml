@@ -1,0 +1,45 @@
+# Stündlich: wartende E-Mails verschicken. Tagsüber außerdem Wartungserinnerungen
+# und einmal pro Woche (montags) den Wochenbericht mit Excel an das Büro.
+name: Automatik
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+    inputs:
+      aufgabe:
+        description: Was soll laufen?
+        type: choice
+        default: auto
+        options: [auto, erinnerungen, wochenbericht, mails]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: automatik
+  cancel-in-progress: false
+
+jobs:
+  aufgaben:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      MAIL_ABSENDER: ${{ vars.MAIL_ABSENDER }}
+    steps:
+      - name: Einrichtung prüfen
+        if: env.DATABASE_URL == ''
+        run: echo "::notice::Secret DATABASE_URL fehlt – noch nichts zu tun. Siehe docs/ONLINE.md."
+      - uses: actions/checkout@v4
+        if: env.DATABASE_URL != ''
+      - uses: actions/setup-node@v4
+        if: env.DATABASE_URL != ''
+        with:
+          node-version: 22
+          cache: npm
+      - if: env.DATABASE_URL != ''
+        run: npm ci
+      - if: env.DATABASE_URL != ''
+        run: npx tsx scripts/aufgaben.mts ${{ inputs.aufgabe || 'auto' }}

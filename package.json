@@ -7,7 +7,10 @@
     "build": "next build",
     "lint": "eslint",
     "test": "vitest run",
-    "test:e2e": "node e2e/finanzen.js && node e2e/technik.js && node e2e/wartung.js && node e2e/urlaub.js"
+    "test:e2e": "node e2e/finanzen.js && node e2e/technik.js && node e2e/wartung.js && node e2e/urlaub.js",
+    "attrappe": "ATTRAPPE_APP=out tsx scripts/supabase-attrappe.mts",
+    "migrieren": "tsx scripts/migrieren.mts",
+    "aufgaben": "tsx scripts/aufgaben.mts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.3",

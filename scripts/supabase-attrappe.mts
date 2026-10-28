@@ -3,6 +3,7 @@
 //
 //   npx tsx scripts/supabase-attrappe.mts            → Supabase-Nachbau auf http://localhost:54321
 //   ATTRAPPE_APP=out npx tsx scripts/supabase-attrappe.mts              → zusätzlich die gebaute App (Ordner out) auf http://localhost:3100
+//   ATTRAPPE_BASIS=/Makanda-Projekt …              → App unter Unterpfad wie auf GitHub Pages
 //   ATTRAPPE_DATEN=./data/attrappe npx tsx …         → Daten bleiben nach dem Beenden erhalten
 //
 // Nur für Tests gedacht: Passwörter werden einfach gehasht, E-Mails nicht bestätigt.
@@ -12,6 +13,8 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import path from "node:path";
 import { jwtVerify, SignJWT } from "jose";
+import { erinnerungenVorbereiten, warteschlangeAbarbeiten, wochenberichtSenden, type Db } from "../src/lib/automatik.ts";
+import { heute } from "../src/lib/format.ts";
 import { als, neueDatenbank, rpc } from "../supabase/test/datenbank.ts";
 
 const PORT = Number(process.env.ATTRAPPE_PORT ?? 54321);
@@ -27,6 +30,23 @@ function nacheinander<T>(arbeit: () => Promise<T>): Promise<T> {
   const ergebnis = kette.then(arbeit, arbeit);
   kette = ergebnis.catch(() => {});
   return ergebnis;
+}
+
+// ---------------------------------------------------------------- Automatik (in Supabase: GitHub Actions)
+
+const automatikDb: Db = { abfrage: async (sql, werte) => (await db.query(sql, werte)).rows as never };
+const testmodus = async () => ({ status: "testmodus" as const });
+
+/** POST /attrappe/aufgaben/erinnerungen | wochenbericht | mails – wie scripts/aufgaben.mts im Testmodus */
+async function aufgabe(res: ServerResponse, url: URL) {
+  const name = url.pathname.split("/").pop();
+  const tag = url.searchParams.get("heute") ?? heute();
+  let meldung: string;
+  if (name === "erinnerungen") meldung = await erinnerungenVorbereiten(automatikDb, tag);
+  else if (name === "wochenbericht") meldung = await wochenberichtSenden(automatikDb, tag, testmodus);
+  else if (name === "mails") meldung = await warteschlangeAbarbeiten(automatikDb, testmodus);
+  else return json(res, 404, { message: "Unbekannte Aufgabe" });
+  json(res, 200, { meldung });
 }
 
 // ---------------------------------------------------------------- Hilfen
@@ -297,6 +317,7 @@ createServer(async (req, res) => {
       if (url.pathname.startsWith("/auth/v1")) return auth(req, res, url, body);
       if (url.pathname.startsWith("/rest/v1")) return rest(req, res, url, body);
       if (url.pathname.startsWith("/storage/v1")) return speicher(req, res, url, body);
+      if (url.pathname.startsWith("/attrappe/aufgaben/")) return aufgabe(res, url);
       return json(res, 404, { message: "Not found" });
     });
   } catch (e) {
@@ -307,6 +328,7 @@ createServer(async (req, res) => {
 
 // Gebaute App ausliefern (wie GitHub Pages: /pfad → /pfad/index.html)
 const APP = process.env.ATTRAPPE_APP;
+const BASIS = process.env.ATTRAPPE_BASIS ?? "";
 if (APP) {
   const wurzel = path.resolve(APP);
   const typen: Record<string, string> = {
@@ -321,10 +343,22 @@ if (APP) {
     ".webmanifest": "application/manifest+json",
   };
   createServer((req, res) => {
-    const pfad = decodeURIComponent(new URL(req.url ?? "/", "http://x").pathname);
+    let pfad = decodeURIComponent(new URL(req.url ?? "/", "http://x").pathname);
+    // Wie auf GitHub Pages unter /<Projektname>/ (ATTRAPPE_BASIS=/Makanda-Projekt)
+    if (BASIS) {
+      if (!pfad.startsWith(BASIS)) return json(res, 404, {});
+      pfad = pfad.slice(BASIS.length) || "/";
+    }
     let datei = path.join(wurzel, pfad);
     if (!datei.startsWith(wurzel)) return json(res, 403, {});
-    if (existsSync(datei) && statSync(datei).isDirectory()) datei = path.join(datei, "index.html");
+    if (existsSync(datei) && statSync(datei).isDirectory()) {
+      if (!pfad.endsWith("/")) {
+        const ziel = new URL(req.url ?? "/", "http://x");
+        res.writeHead(301, { Location: `${ziel.pathname}/${ziel.search}` });
+        return res.end();
+      }
+      datei = path.join(datei, "index.html");
+    }
     if (!existsSync(datei) && existsSync(`${datei}.html`)) datei = `${datei}.html`;
     if (!existsSync(datei)) datei = path.join(wurzel, "404.html");
     const inhalt = readFileSync(datei);

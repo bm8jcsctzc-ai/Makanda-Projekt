@@ -1,74 +1,148 @@
 # App online stellen – Schritt für Schritt
 
-Ziel: Die App läuft im Internet unter einer eigenen Adresse. Dafür braucht es zwei Dienste, bei beiden meldest du dich **mit deinem GitHub-Konto** an:
+Am Ende ist die App unter dieser Adresse erreichbar:
+**https://bm8jcsctzc-ai.github.io/Makanda-Projekt/**
+
+Dafür braucht es zwei kostenlose Dienste:
 
 | Dienst | Aufgabe |
 |---|---|
-| **Supabase** | Datenbank und Speicher für Fotos und Rechnungen (Rechenzentrum Frankfurt) |
-| **Vercel** | führt die App aus und gibt ihr eine Internetadresse (ebenfalls Frankfurt) |
+| **Supabase** | Datenbank, Anmeldung und Speicher für Fotos und Rechnungen (Rechenzentrum Frankfurt) |
+| **GitHub** | zeigt die App im Internet an (GitHub Pages) und erledigt die Automatik: Erinnerungsmails, Wochenbericht, Datenbank-Updates (GitHub Actions) |
 
 Dauer: etwa 20 Minuten. Die Bezeichnungen der Knöpfe können sich bei den Anbietern leicht ändern.
 
-> **Wichtig:** Passwörter und Schlüssel aus dieser Anleitung nur bei Vercel eintragen – nicht in Chats oder E-Mails kopieren.
+> **Wichtig:** Das Datenbank-Passwort und der Mail-Schlüssel kommen **nur** in die Einstellungen bei GitHub (als „Secret“). Nicht in Chats, E-Mails oder in den Code kopieren.
+> Die **Project URL** und der **Publishable key** sind dagegen öffentlich. Sie stehen später sowieso in der App, jeder Browser bekommt sie.
 
 ---
 
-## Teil 1: Supabase (Datenbank und Speicher)
+## Teil 1: Supabase
 
-1. Öffne **supabase.com** → **Start your project** → **Continue with GitHub**.
-2. Lege eine Organisation an (Name z. B. der Firmenname, Plan **Free**).
-3. **New project**:
-   - Name: `makanda`
-   - **Database Password**: auf **Generate a password** klicken und das Passwort **sicher notieren** (z. B. im Passwort-Manager). Du brauchst es gleich.
-   - **Region: Central EU (Frankfurt)** – wichtig für den Datenschutz.
-   - **Create new project**, dann 1–2 Minuten warten.
-4. **Verbindungsadresse der Datenbank** holen:
-   - Oben auf **Connect** klicken.
-   - Bei **Connection String** den Typ **Transaction pooler** wählen (Port **6543**).
-   - Die Adresse kopieren. Sie sieht so aus:
-     `postgresql://postgres.abcd…:[YOUR-PASSWORD]@aws-0-eu-central-1.pooler.supabase.com:6543/postgres`
-   - `[YOUR-PASSWORD]` (mit den eckigen Klammern) durch dein Datenbank-Passwort ersetzen.
-     Enthält das Passwort Sonderzeichen wie `@`, `#` oder `/`, lieber in Supabase ein neues ohne Sonderzeichen erzeugen (Project Settings › Database › Reset database password).
-   - Das ist der Wert für **DATABASE_URL**.
-5. **Projekt-Adresse und geheimer Schlüssel** holen: **Project Settings** (Zahnrad) → **API** bzw. **API Keys**:
-   - **Project URL** (`https://abcd….supabase.co`) → Wert für **SUPABASE_URL**
-   - **Secret key** (beginnt mit `sb_secret_`; bei älteren Projekten heißt er **service_role**) → Wert für **SUPABASE_SECRET_KEY**
+Das Projekt `makanda` (Region Frankfurt) hast du schon angelegt. Jetzt brauchst du daraus drei Werte und zwei Einstellungen.
 
-   Den Speicher-Ordner für Fotos und Rechnungen legt die App beim ersten Hochladen selbst an (nicht öffentlich).
+### 1.1 Projekt-Adresse und öffentlicher Schlüssel
+
+**Project Settings** (Zahnrad unten links) → **API Keys** bzw. **Data API**:
+
+- **Project URL**, sieht so aus: `https://abcdefgh.supabase.co`
+- **Publishable key**, beginnt mit `sb_publishable_…`. Bei älteren Projekten heißt er **anon public**.
+
+Den **Secret key** (`sb_secret_…`, früher **service_role**) brauchst du **nicht**. Gib ihn nie weiter.
+
+### 1.2 Verbindungsadresse der Datenbank (geheim)
+
+1. Oben auf **Connect** klicken.
+2. Bei **Connection String** den Typ **Session pooler** wählen (Port **5432**).
+   Den **Direct connection**-Typ nicht nehmen: Er funktioniert von GitHub aus nicht.
+3. Die Adresse kopieren. Sie sieht so aus:
+   `postgresql://postgres.abcdefgh:[YOUR-PASSWORD]@aws-0-eu-central-1.pooler.supabase.com:5432/postgres`
+4. `[YOUR-PASSWORD]` (mit den eckigen Klammern) durch dein Datenbank-Passwort ersetzen.
+   Enthält das Passwort Sonderzeichen wie `@`, `#`, `/` oder `?`: in Supabase ein neues Passwort ohne Sonderzeichen erzeugen (**Project Settings › Database › Reset database password**).
+
+Das ist der Wert für **DATABASE_URL**.
+
+### 1.3 Anmeldung einstellen
+
+**Authentication** (Personen-Symbol links):
+
+1. **Sign In / Providers** → **Email**:
+   - **Allow new users to sign up**: **an** lassen. Registrieren kann sich trotzdem nur, wer einen Einladungscode vom Inhaber hat.
+   - **Confirm email**: **aus**schalten → **Save**. Dann können sich neue Mitarbeiter sofort anmelden.
+     Lässt du es an, muss jeder zuerst einen Link in einer E-Mail von Supabase anklicken. Die kostenlosen Supabase-Mails sind auf wenige pro Stunde begrenzt.
+2. **URL Configuration**:
+   - **Site URL**: `https://bm8jcsctzc-ai.github.io/Makanda-Projekt/`
+   - Unter **Redirect URLs** → **Add URL**: `https://bm8jcsctzc-ai.github.io/Makanda-Projekt/**`
+   - Speichern. Das braucht „Passwort vergessen?“, damit der Link aus der E-Mail zur App führt.
+
+Die Tabellen, Schutzregeln und den Speicher für Dateien legt GitHub beim Veröffentlichen automatisch an (Teil 2).
 
 ---
 
-## Teil 2: Vercel (die App im Internet)
+## Teil 2: GitHub
 
-1. Öffne **vercel.com/signup** → Plan **Hobby** → **Continue with GitHub**.
-2. **Add New… → Project**. Bei **Import Git Repository** das Projekt **Makanda-Projekt** auswählen → **Import**.
-   Erscheint es nicht: **Adjust GitHub App Permissions** und Vercel den Zugriff auf das Projekt erlauben.
-3. Framework wird automatisch erkannt (**Next.js**). Nichts ändern.
-4. **Environment Variables** aufklappen und diese vier eintragen (Name links, Wert rechts):
+Alles unter **github.com/bm8jcsctzc-ai/Makanda-Projekt**.
 
-   | Name | Wert |
-   |---|---|
-   | `DATABASE_URL` | Verbindungsadresse aus Teil 1, Schritt 4 |
-   | `SUPABASE_URL` | Project URL aus Teil 1, Schritt 5 |
-   | `SUPABASE_SECRET_KEY` | Secret key aus Teil 1, Schritt 5 |
-   | `CRON_SECRET` | eine lange Zufallszeichenkette, z. B. aus dem Passwort-Manager (mind. 32 Zeichen) |
+### 2.1 Projekt öffentlich machen
 
-5. **Deploy** klicken und 2–3 Minuten warten.
-6. Auf **Continue to Dashboard** → oben steht die Adresse, z. B. `makanda-projekt.vercel.app`.
+GitHub Pages ist für öffentliche Projekte kostenlos.
+
+**Settings** → ganz unten **Danger Zone** → **Change repository visibility** → **Public**.
+
+Öffentlich ist dabei nur der **Programmcode**. Die Daten (Kunden, Rechnungen, Fotos) liegen geschützt bei Supabase, und nur angemeldete Benutzer kommen daran, je nach Rolle.
+
+### 2.2 GitHub Pages einschalten
+
+**Settings** → **Pages** → bei **Source** die Option **GitHub Actions** wählen.
+
+### 2.3 Werte eintragen
+
+**Settings** → **Secrets and variables** → **Actions**.
+
+Reiter **Secrets** → **New repository secret**:
+
+| Name | Wert |
+|---|---|
+| `DATABASE_URL` | Verbindungsadresse aus 1.2 |
+
+Reiter **Variables** → **New repository variable**:
+
+| Name | Wert |
+|---|---|
+| `SUPABASE_URL` | Project URL aus 1.1 |
+| `SUPABASE_PUBLISHABLE_KEY` | Publishable key aus 1.1 |
+
+Die Namen genau so schreiben (Großbuchstaben, Unterstrich).
+
+### 2.4 Veröffentlichen
+
+**Actions** → links **Veröffentlichen** → rechts **Run workflow** → **Run workflow**.
+
+Nach 3–4 Minuten ist der Lauf grün. Er hat
+1. die Tests ausgeführt,
+2. die Datenbank in Supabase eingerichtet,
+3. die App gebaut und online gestellt.
+
+Danach läuft das bei jeder Änderung auf `main` automatisch.
+
+Wird ein Schritt rot: draufklicken, die Fehlermeldung kopieren und mir schicken. Das ist unbedenklich, denn Secrets zeigt GitHub dort nur als `***` an.
 
 ---
 
 ## Teil 3: Erster Start
 
-1. Die Adresse öffnen. Es erscheint die **Ersteinrichtung**.
-   **Sofort** den ersten Zugang anlegen – bis dahin könnte jeder, der die Adresse kennt, ihn anlegen.
-2. Unter **Einstellungen › Betrieb & E-Mails** Firmenname, Telefon und Büro-E-Mail eintragen (Bundesland ist schon Baden-Württemberg).
-3. Unter **Einstellungen › Benutzer** die Zugänge für deinen Freund (Rolle **Inhaber**) und die Monteure anlegen.
-4. Auf dem Handy die Adresse öffnen und über das Browser-Menü **„Zum Home-Bildschirm“** hinzufügen – dann startet die App wie eine normale App.
+1. **https://bm8jcsctzc-ai.github.io/Makanda-Projekt/** öffnen. Es erscheint die **Ersteinrichtung**.
+   Mach das **sofort**: Der erste Zugang wird Inhaber, und bis dahin könnte ihn jeder anlegen, der die Adresse kennt.
+2. Unter **Einstellungen › Betrieb & E-Mails** Firmenname, Telefon und Büro-E-Mail eintragen. Das Bundesland ist schon Baden-Württemberg.
+3. Unter **Einstellungen › Benutzer** deinen Freund und die Monteure einladen:
+   - Name, E-Mail und Rolle eintragen → **Einladen**.
+   - Die App zeigt einen **Einladungscode**. Gib ihn der Person (persönlich, per Telefon oder Messenger).
+   - Die Person öffnet die App, tippt auf **„Neu hier? Mit Einladungscode registrieren“** und wählt ihr eigenes Passwort.
+   - Danach kannst du deinen Freund auf **Inhaber** setzen. Dich selbst kannst du später auf **inaktiv** stellen, wenn das Testen vorbei ist.
+4. Auf dem Handy die Adresse öffnen und über das Browser-Menü **„Zum Home-Bildschirm“** hinzufügen. Dann startet sie wie eine normale App.
+
+---
+
+## Teil 4: Echte E-Mails (später)
+
+Bis hierhin läuft der **Testmodus**: Erinnerungen, Wochenbericht und Urlaubs-Mails stehen nur unter **Einstellungen › E-Mail-Protokoll**.
+
+Für echten Versand:
+1. Bei **resend.com** anmelden (kostenlos bis 3.000 Mails im Monat) und die **Domain der Firma** bestätigen. Dafür trägt man beim Domain-Anbieter ein paar DNS-Einträge ein, Resend zeigt sie an.
+2. Bei Resend einen **API Key** erzeugen.
+3. Bei GitHub (**Settings › Secrets and variables › Actions**) eintragen:
+   - Secret `RESEND_API_KEY`: der API Key
+   - Variable `MAIL_ABSENDER`: z. B. `Mustermann Haustechnik <service@firma.de>` (Adresse mit der bestätigten Domain)
+
+---
 
 ## Gut zu wissen
 
-- **Updates:** Jede Änderung, die auf `main` in GitHub landet, veröffentlicht Vercel automatisch.
-- **E-Mails** laufen bis zur Einrichtung eines Mail-Dienstes im Testmodus (Einstellungen › E-Mail-Protokoll).
-- **Kosten:** Supabase Free und Vercel Hobby kosten nichts. Für die geschäftliche Nutzung verlangt Vercel den Pro-Tarif. Supabase pausiert kostenlose Projekte nach längerer Inaktivität; im echten Betrieb ist der Pro-Tarif mit täglicher Datensicherung empfehlenswert.
-- **Upload-Grenze:** Dateien bis 4 MB. Fotos werden in der App automatisch verkleinert.
+- **Automatik:** Der Ablauf **Automatik** (unter **Actions**) läuft jede Stunde:
+  - Er verschickt wartende E-Mails.
+  - Tagsüber prüft er die Wartungserinnerungen.
+  - Montags schickt er den Wochenbericht mit Excel ans Büro.
+  - Von Hand starten: **Actions › Automatik › Run workflow** und die Aufgabe auswählen.
+- **GitHub pausiert Zeitpläne** in öffentlichen Projekten, wenn es 60 Tage lang keine Änderung am Code gab. GitHub schickt vorher eine E-Mail. Dann unter **Actions › Automatik** auf **Enable workflow** klicken.
+- **Supabase Free** pausiert Projekte nach etwa einer Woche ohne Nutzung. Ist das passiert, im Supabase-Dashboard auf **Restore project** klicken. Für den echten Betrieb ist der Pro-Tarif mit täglicher Datensicherung empfehlenswert.
+- **Dateien** dürfen bis 10 MB groß sein (PDF, JPEG, PNG, HEIC, WebP). Fotos verkleinert die App vor dem Hochladen automatisch.

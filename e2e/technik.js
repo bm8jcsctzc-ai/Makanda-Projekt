@@ -1,4 +1,10 @@
 const { chromium } = require("playwright");
+
+// Die Seiten laden ihre Daten erst im Browser: warten, bis nichts mehr lädt
+async function bereit(seite) {
+  await seite.waitForLoadState("networkidle").catch(() => {});
+  await seite.waitForSelector("[aria-busy=true]", { state: "detached", timeout: 10000 }).catch(() => {});
+}
 // Browser-Test gegen eine laufende App mit leerer Datenbank (siehe README).
 // Screenshots landen im Ordner, der als erstes Argument übergeben wird (Standard: Temp-Ordner).
 const path = require("node:path");
@@ -15,10 +21,12 @@ async function login(browser, email, pw, mobil = false) {
   const p = await ctx.newPage();
   p.on("pageerror", (e) => { throw new Error("JS-Fehler: " + e.message); });
   await p.goto(B + "/login");
+  await bereit(p);
   await p.fill("#email", email);
   await p.fill("#passwort", pw);
   await p.click("button");
   await p.waitForURL(B + "/");
+  await bereit(p);
   return p;
 }
 
@@ -28,6 +36,7 @@ async function login(browser, email, pw, mobil = false) {
 
   // Kunde anlegen
   await p.goto(B + "/kunden/neu");
+  await bereit(p);
   await p.fill("#name", "Familie Schmidt");
   await p.fill("#strasse", "Musterstraße 12");
   await p.fill("#plz", "30159");
@@ -35,13 +44,15 @@ async function login(browser, email, pw, mobil = false) {
   await p.fill("#telefon", "0511 123456");
   await p.fill("#hinweise", "Hund im Haus, bitte klingeln");
   await p.click("text=Speichern");
-  await p.waitForURL(/\/kunden\/[0-9a-f-]{36}$/);
+  await p.waitForURL(/\/kunden\/ansehen\/\?id=[0-9a-f-]{36}$/);
+  await bereit(p);
   const kundeUrl = p.url();
   ok(await p.isVisible("text=Hund im Haus"), "Kunde angelegt, Hinweis sichtbar");
 
   // Anlage anlegen
   await p.click("text=+ Anlage");
   await p.waitForURL(/\/anlagen\/neu/);
+  await bereit(p);
   await p.selectOption("#typ", "gas");
   await p.fill("#hersteller", "Viessmann");
   await p.fill("#modell", "Vitodens 200-W");
@@ -50,12 +61,14 @@ async function login(browser, email, pw, mobil = false) {
   await p.fill("#aufstellort", "Keller, Heizraum");
   await p.fill("#letzteWartungAm", "2025-10-15");
   await p.click("text=Speichern");
-  await p.waitForURL(/\/anlagen\/[0-9a-f-]{36}$/);
+  await p.waitForURL(/\/anlagen\/ansehen\/\?id=[0-9a-f-]{36}$/);
+  await bereit(p);
   const anlageUrl = p.url();
   ok(await p.isVisible("text=15.10.2026 – überfällig"), "nächste Wartung automatisch berechnet und als überfällig markiert");
 
   // Fehlerfall Baujahr
-  await p.goto(anlageUrl + "/bearbeiten");
+  await p.goto(anlageUrl.replace("/ansehen/", "/bearbeiten/"));
+  await bereit(p);
   await p.fill("#baujahr", "1800");
   await p.click("text=Speichern");
   await p.waitForSelector(".fehler-box");
@@ -63,26 +76,32 @@ async function login(browser, email, pw, mobil = false) {
 
   // Einsatz planen für Max
   await p.goto(kundeUrl);
+  await bereit(p);
   await p.click("text=+ Einsatz planen");
   await p.waitForURL(/\/einsaetze\/neu/);
+  await bereit(p);
   await p.selectOption("#anlageId", { index: 1 });
   await p.selectOption("#art", "wartung");
   await p.selectOption("#monteurId", { label: "Max Monteur" });
   await p.fill("#uhrzeit", "08:00");
   await p.fill("#beschreibung", "Jahreswartung Gastherme");
   await p.click("text=Speichern");
-  await p.waitForURL(/\/einsaetze\/[0-9a-f-]{36}$/);
+  await p.waitForURL(/\/einsaetze\/ansehen\/\?id=[0-9a-f-]{36}$/);
+  await bereit(p);
   const einsatzUrl = p.url();
   ok(norm(await p.textContent("main")).includes("Wartung bei Familie Schmidt"), "Einsatz geplant");
 
   // Zweiter Einsatz ohne Monteur
-  await p.goto(B + "/einsaetze/neu?kunde=" + kundeUrl.split("/").pop());
+  await p.goto(B + "/einsaetze/neu?kunde=" + new URL(kundeUrl).searchParams.get("id"));
+  await bereit(p);
   await p.selectOption("#art", "stoerung");
   await p.fill("#beschreibung", "Heizung macht Geräusche");
   await p.click("text=Speichern");
-  await p.waitForURL(/\/einsaetze\/[0-9a-f-]{36}$/);
+  await p.waitForURL(/\/einsaetze\/ansehen\/\?id=[0-9a-f-]{36}$/);
+  await bereit(p);
   const fremderEinsatz = p.url();
   await p.goto(B + "/einsaetze");
+  await bereit(p);
   ok(await p.isVisible("text=noch keinen Monteur"), "Einsatzliste warnt vor Einsatz ohne Monteur");
 
   // ---- Monteur am Handy ----
@@ -91,11 +110,13 @@ async function login(browser, email, pw, mobil = false) {
   ok(!(await m.isVisible("nav >> text=Finanzen")) && !(await m.isVisible("nav >> text=Einsätze")), "Monteur sieht keine Finanzen und keine Einsatzplanung");
   await m.click("text=Familie Schmidt");
   await m.waitForURL(einsatzUrl);
+  await bereit(m);
   ok(await m.isVisible("text=Hund im Haus"), "Kundenhinweis im Einsatz sichtbar");
   ok((await m.getAttribute("a:has-text('Musterstraße')", "href")).includes("google.com/maps"), "Navigations-Link vorhanden");
   ok((await m.inputValue("#vorlageId")) !== "" && (await m.textContent("#vorlageId option:checked")).includes("Gas-Brennwert"), "passende Checkliste vorgeschlagen");
   await m.click("text=Checkliste starten");
-  await m.waitForURL(/\/checkliste\//);
+  await m.waitForURL(/\/checkliste\/\?id=/);
+  await bereit(m);
   const checkUrl = m.url();
 
   await m.click("text=Abschließen");
@@ -121,6 +142,7 @@ async function login(browser, email, pw, mobil = false) {
   await m.screenshot({ path: S + "/shots/checkliste-handy.png", fullPage: false });
   await m.click("text=Abschließen");
   await m.waitForURL(einsatzUrl);
+  await bereit(m);
   ok(await m.isVisible("text=2 auffällig"), "abgeschlossene Checkliste zeigt 2 Auffälligkeiten");
 
   // Foto hochladen
@@ -130,7 +152,7 @@ async function login(browser, email, pw, mobil = false) {
   await m.setInputFiles("[data-testid=foto-eingabe]", path.join(S, "testfoto.png"));
   await m.waitForSelector("img[alt='Typenschild Therme']", { timeout: 20000 });
   const bild = await m.getAttribute("img[alt='Typenschild Therme']", "src");
-  const antwort = await m.request.get(B + bild);
+  const antwort = await m.request.get(bild);
   ok(antwort.status() === 200 && antwort.headers()["content-type"] === "image/jpeg", "Foto hochgeladen und als verkleinertes JPEG gespeichert");
 
   // Einsatz abschließen
@@ -142,17 +164,22 @@ async function login(browser, email, pw, mobil = false) {
 
   // Rechte des Monteurs
   await m.goto(fremderEinsatz);
+  await bereit(m);
   ok((await m.locator("button", { hasText: /Checkliste starten|Einsatz abschließen|Foto aufnehmen/ }).count()) === 0 && (await m.isVisible("text=Nur der zuständige Monteur")), "fremden Einsatz kann der Monteur nur ansehen");
   await m.goto(B + "/einsaetze");
-  ok(m.url() === B + "/", "Monteur kommt nicht an die Einsatzplanung");
+  await bereit(m);
+  ok(await m.waitForURL(B + "/").then(() => true, () => false), "Monteur kommt nicht an die Einsatzplanung");
   await m.goto(B + "/einstellungen/checklisten");
-  ok(m.url() === B + "/", "Monteur kommt nicht an die Vorlagen");
+  await bereit(m);
+  ok(await m.waitForURL(B + "/").then(() => true, () => false), "Monteur kommt nicht an die Vorlagen");
   await m.goto(checkUrl);
+  await bereit(m);
   ok(!(await m.isVisible("text=Wieder öffnen")) && (await m.isVisible("text=1 Mangel")), "abgeschlossene Checkliste ist für Monteur schreibgeschützt");
 
   // Anlagenakte beim Inhaber
   const nachWartung = new Date(Date.UTC(+heute.slice(0, 4) + 1, +heute.slice(5, 7) - 1, +heute.slice(8, 10))).toISOString().slice(0, 10);
   await p.goto(anlageUrl);
+  await bereit(p);
   const akte = norm(await p.textContent("main"));
   ok(akte.includes(de(heute)) && akte.includes(de(nachWartung)) && !akte.includes("überfällig"), "Wartung abgeschlossen → nächste Wartung in 12 Monaten");
   ok(akte.includes("Typenschild Therme") && akte.includes("2 auffällig"), "Anlagenakte zeigt Foto und Checklisten-Historie");
@@ -160,6 +187,7 @@ async function login(browser, email, pw, mobil = false) {
 
   // Druckansicht
   await p.goto(checkUrl);
+  await bereit(p);
   ok(await p.isVisible("text=Drucken / PDF") && await p.isVisible("text=Brennerdichtung porös"), "Druckansicht mit Bemerkungen");
   await p.emulateMedia({ media: "print" });
   await p.screenshot({ path: S + "/shots/checkliste-druck.png", fullPage: true });
@@ -167,11 +195,13 @@ async function login(browser, email, pw, mobil = false) {
 
   // Vorlage bearbeiten
   await p.goto(B + "/einstellungen/checklisten");
+  await bereit(p);
   await p.click("text=Störung / Reparatur");
   await p.click("text=+ Prüfpunkt hinzufügen");
   await p.fill("input[aria-label='Text Punkt 6']", "Kunde über Kosten informiert");
   await p.click("button:text('Speichern')");
-  await p.waitForURL(B + "/einstellungen/checklisten");
+  await p.waitForURL(B + "/einstellungen/checklisten/");
+  await bereit(p);
   const zeile = norm(await p.textContent("tr:has-text('Störung / Reparatur')"));
   ok(zeile.includes("6") && zeile.includes("2"), "Vorlage geändert, Version erhöht");
 
@@ -186,14 +216,17 @@ async function login(browser, email, pw, mobil = false) {
   const bp = await login(browser, "bea@example.com", "Startpasswort1");
   ok(await bp.isVisible("text=Alle Einsätze heute") && await bp.isVisible("nav >> text=Einsätze"), "Büro sieht alle Einsätze des Tages");
   await bp.goto(B + "/einstellungen/benutzer");
-  ok(bp.url() === B + "/", "Büro kommt nicht an die Benutzerverwaltung");
+  await bereit(bp);
+  ok(await bp.waitForURL(B + "/").then(() => true, () => false), "Büro kommt nicht an die Benutzerverwaltung");
 
   // Kunde löschen räumt auf
-  await p.goto(kundeUrl + "/bearbeiten");
+  await p.goto(kundeUrl.replace("/ansehen/", "/bearbeiten/"));
+  await bereit(p);
   p.once("dialog", (d) => d.accept());
   await p.click("button:text('Löschen')");
-  await p.waitForURL(B + "/kunden");
-  ok((await p.request.get(B + bild)).status() === 404, "Kunde gelöscht – Fotos sind mit entfernt");
+  await p.waitForURL(B + "/kunden/");
+  await bereit(p);
+  ok((await p.request.get(bild)).status() === 404, "Kunde gelöscht – Fotos sind mit entfernt");
 
   await browser.close();
 })().catch((e) => { console.error(e.message); process.exit(1); });

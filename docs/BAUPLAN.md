@@ -74,7 +74,7 @@ Quellen: Herstellerseiten, App-Store-Beschreibungen und Drittanbieter-Dokumentat
 ```
  Büro (lokal)                                Cloud (EU, Frankfurt)                  Unterwegs
 ┌──────────────────────┐   HTTPS, nur        ┌───────────────────────────┐        ┌───────────────┐
-│ TAIFUN (Windows-Srv.)│   ausgehend         │ Web-App (Next.js, Vercel) │◄──────►│ Handy/Tablet  │
+│ TAIFUN (Windows-Srv.)│   ausgehend         │ Web-App (GitHub Pages)    │◄──────►│ Handy/Tablet  │
 │   │ Export (XML/XLSX)│ ──────────────────► │  - Büro-Oberfläche        │        │ PWA, offline- │
 │   ▼                  │                     │  - Monteur-Oberfläche     │        │ fähig         │
 │ Austauschordner      │ ◄────────────────── │  - Import / Export        │        └───────────────┘
@@ -90,7 +90,7 @@ Quellen: Herstellerseiten, App-Store-Beschreibungen und Drittanbieter-Dokumentat
 |---|---|---|
 | Web-App | Next.js (TypeScript), als **PWA** installierbar | Eine Codebasis für Büro-PC und Handy, keine App-Store-Pflicht |
 | Datenbank, Login, Dateien | Supabase (Postgres, Auth, Storage), Region EU | Rollen und Zugriffsrechte direkt in der Datenbank (Row Level Security) |
-| Hosting | Vercel (Region Frankfurt) | einfache Veröffentlichung, zeitgesteuerte Aufgaben (Cron) |
+| Hosting | GitHub Pages (App) + Supabase Frankfurt (Daten) | kostenlos; zeitgesteuerte Aufgaben über GitHub Actions |
 | Offline-Speicher | IndexedDB (über Dexie.js) + Service Worker | Heizungskeller haben oft kein Netz |
 | Sprache → Text | Speech-to-Text-Dienst mit EU-Verarbeitung (Anbieter in Phase 8 auswählen) | Transkription |
 | Text → Bericht | Claude API (z. B. Claude Sonnet 5.5) mit festem Ausgabeschema | strukturiert den Text in Tätigkeiten, Zeiten und Material |
@@ -311,7 +311,7 @@ Den Status *übertragen* setzt die App **erst nach einer Bestätigung**, also du
 | Datenverlust | Tägliche Datenbank-Sicherung. Die Fotos liegen im Speicher mit Versionierung. **Ob der kostenlose Supabase-Tarif Sicherungen enthält, noch prüfen;** sonst ist der bezahlte Tarif nötig. |
 
 **Datenschutz (DSGVO):**
-- Auftragsverarbeitungsverträge mit Supabase, Vercel, dem Sprachdienst und dem KI-Dienst abschließen.
+- Auftragsverarbeitungsverträge mit Supabase, GitHub, dem Sprachdienst und dem KI-Dienst abschließen.
 - Alle Daten in der EU speichern.
 - Löschfristen für Audiodateien festlegen, z. B. 30 Tage nach der Freigabe.
 - Keine Standortverfolgung der Mitarbeiter.
@@ -325,7 +325,7 @@ Jede Phase endet mit einem Stand, den der Betrieb **wirklich benutzen** kann.
 | Phase | Inhalt | Ergebnis |
 |---|---|---|
 | **0: Klärung** | Fragen P1 bis P10 an TAIFUN klären. Je einen **Beispiel-Export** für Kunden, Aufträge und Termine besorgen. Mit dem Inhaber 3 typische Einsätze durchgehen. **Entscheidung:** eigene App bauen oder TAIFUN-Module nutzen? | Klarheit, keine verschwendete Arbeit |
-| **1: Fundament** | Projekt anlegen, Supabase (EU), Login, Rollen, Datenbanktabellen mit Zugriffsregeln, Veröffentlichung auf Vercel | leere App mit Login |
+| **1: Fundament** | Projekt anlegen, Supabase (EU), Login, Rollen, Datenbanktabellen mit Zugriffsregeln, Veröffentlichung auf GitHub Pages | leere App mit Login |
 | **2: Import Stufe A** | Datei-Upload, Parser für die Beispiel-Exporte, Vorschau, Protokoll; Büroseiten `/auftraege` und `/kunden` | TAIFUN-Daten in der App |
 | **3: Mobile Übersicht** | `/heute`, `/woche`, Auftragsdetail, Kundenhinweise (online) | Monteure sehen ihren Tag |
 | **4: Anlagenakte** | Anlagen anlegen und bearbeiten, Typenschild-Foto, technische Daten, Zeitleiste | Digitale Anlagenakte |

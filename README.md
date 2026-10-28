@@ -20,7 +20,7 @@ Der technische Gesamtplan steht in [`docs/BAUPLAN.md`](docs/BAUPLAN.md).
 - **Automatische E-Mails:**
   - täglich: Erinnerung an Kunden X Monate vor der Wartung (Standard: 3) und eine Übersicht ans Büro, welche Kunden ohne E-Mail angerufen werden müssen. Pro Fälligkeit nur einmal, nicht wenn schon ein Termin geplant ist, nicht an Kunden, die keine Erinnerungen wollen
   - montags: Excel mit allen Wartungskunden an das Büro, mit Hinweis auf überfällige Wartungen und Häufungen
-  - Text der Erinnerung unter Einstellungen › Wartung & E-Mails anpassbar, mit Vorschau
+  - Text der Erinnerung unter Einstellungen › Betrieb & E-Mails anpassbar, mit Vorschau
   - **Testmodus**, solange kein Mail-Dienst eingerichtet ist: Mails erscheinen nur im E-Mail-Protokoll
 
 **Urlaubsplaner**
@@ -57,39 +57,44 @@ Der technische Gesamtplan steht in [`docs/BAUPLAN.md`](docs/BAUPLAN.md).
 | Büro | Einsätze planen, Kunden, Checklisten-Vorlagen, Abwesenheiten eintragen, Rechnungen, Fixkosten (keine Gehälter, keine Benutzer, kein Genehmigen) |
 | Monteur | eigene Einsätze bearbeiten (Checkliste, Fotos, Abschluss), Kunden und Anlagen ansehen, Anlagendaten erfassen, Urlaub beantragen – keine Finanzen |
 
-## Auf dem eigenen Rechner starten
-
-Voraussetzung: [Node.js](https://nodejs.org) ab Version 20.
-
-```bash
-npm install
-npm run dev
-```
-
-Dann im Browser <http://localhost:3000> öffnen. Beim allerersten Start erscheint die **Ersteinrichtung**. Dort legst du den ersten Zugang an, er bekommt die Rolle Inhaber.
-
-Es ist **kein Datenbank-Konto nötig**. Ohne weitere Einstellungen nutzt die App eine eingebaute Datenbank im Ordner `data/`, dort liegen auch die hochgeladenen Dateien. Der Ordner wird nicht ins Git-Repository übernommen. Zum Zurücksetzen den Ordner `data/` löschen.
+**Wer darf was** wird in der Datenbank selbst geprüft (`supabase/migrations/0002_funktionen.sql`): Die App kann nur über geprüfte Funktionen lesen und schreiben, nie direkt auf Tabellen oder fremde Dateien zugreifen. Neue Mitarbeiter registrieren sich mit einem Einladungscode vom Inhaber.
 
 ## Online stellen
 
-Schritt-für-Schritt-Anleitung: [`docs/ONLINE.md`](docs/ONLINE.md) (Supabase + Vercel, Rechenzentren in Frankfurt).
+Schritt-für-Schritt-Anleitung: [`docs/ONLINE.md`](docs/ONLINE.md). Die App läuft auf **GitHub Pages**, Daten und Anmeldung liegen bei **Supabase** (Rechenzentrum Frankfurt).
 
-| Einstellung | Zweck |
-|---|---|
-| `DATABASE_URL` | Verbindung zur Postgres-Datenbank (Supabase, „Transaction pooler“). Die Tabellen werden beim Start automatisch angelegt. |
-| `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | Speicher für Fotos und Rechnungen (privater Bucket in Supabase Storage). Ohne: Ordner `data/uploads`. |
-| `SESSION_SECRET` | optional; sonst erzeugt die App den Schlüssel für die Anmeldung selbst und speichert ihn in der Datenbank |
-| `RESEND_API_KEY`, `MAIL_ABSENDER` | echter E-Mail-Versand über [Resend](https://resend.com), z. B. `MAIL_ABSENDER="Mustermann Haustechnik <service@firma.de>"`. Ohne diese Werte läuft der Testmodus. |
-| `CRON_SECRET` | Zufallswert, schützt die Adressen `/api/cron/taeglich` und `/api/cron/woechentlich`. Auf Vercel ruft der Zeitplaner sie laut `vercel.json` automatisch auf. |
+| Einstellung bei GitHub (Settings › Secrets and variables › Actions) | Art | Zweck |
+|---|---|---|
+| `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` | Variable | Supabase-Projekt, mit dem die App spricht (öffentlich) |
+| `DATABASE_URL` | Secret | Datenbank-Verbindung („Session pooler“) für Datenbank-Updates und Automatik |
+| `RESEND_API_KEY` | Secret | echter E-Mail-Versand über [Resend](https://resend.com); ohne läuft der Testmodus |
+| `MAIL_ABSENDER` | Variable | z. B. `Mustermann Haustechnik <service@firma.de>` |
+
+Zwei Abläufe in `.github/workflows/`:
+- **Veröffentlichen** (bei jeder Änderung auf `main`): Tests, Datenbank-Updates aus `supabase/migrations/`, App bauen und auf GitHub Pages stellen
+- **Automatik** (stündlich): Wartungserinnerungen, Wochenbericht, wartende E-Mails verschicken (`scripts/aufgaben.mts`)
+
+## Auf dem eigenen Rechner ausprobieren
+
+Voraussetzung: [Node.js](https://nodejs.org) ab Version 20. Ein Supabase-Konto ist dafür nicht nötig: Ein Nachbau von Supabase läuft lokal mit (`scripts/supabase-attrappe.mts`).
+
+```bash
+npm install
+NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=lokal npm run build
+npm run attrappe
+```
+
+Dann im Browser <http://localhost:3100> öffnen. Beim allerersten Start erscheint die **Ersteinrichtung**. Der erste Zugang wird Inhaber. Die Daten sind nach dem Beenden weg. Mit `ATTRAPPE_DATEN=./data/attrappe npm run attrappe` bleiben sie erhalten.
 
 ## Für Entwickler
 
 ```bash
-npm test              # Tests der Rechenlogik
-npm run test:e2e      # Browser-Tests (App muss mit leerer Datenbank auf Port 3100 laufen: rm -rf data && PORT=3100 npm start)
+npm test              # Rechenlogik, Rechte der Datenbank-Funktionen, Automatik
+npm run test:e2e      # Browser-Tests gegen die gebaute App mit frischer Attrappe (siehe oben)
 npm run lint          # Code-Prüfung
-npm run build         # Produktions-Build
-npm run db:migration  # nach Änderungen an src/db/schema.ts neue Migration erzeugen
+npm run migrieren     # Datenbank-Updates einspielen (DATABASE_URL nötig)
+npm run aufgaben -- erinnerungen   # Automatik von Hand (auto | erinnerungen | wochenbericht | mails)
 ```
 
-Technik: Next.js 15, TypeScript, Tailwind CSS, Drizzle ORM, PostgreSQL (lokal über PGlite).
+Technik: Next.js 15 (statischer Export), TypeScript, Tailwind CSS, Supabase (Postgres, Auth, Storage).
+Neue Datenbank-Änderungen als neue Datei `supabase/migrations/0006_….sql` anlegen. Bestehende Dateien nicht mehr ändern, sie sind in Supabase schon eingespielt.

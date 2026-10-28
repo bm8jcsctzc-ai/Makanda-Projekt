@@ -1,4 +1,11 @@
 const { chromium } = require("playwright");
+
+// Die Seiten laden ihre Daten erst im Browser: warten, bis nichts mehr lädt
+async function bereit(seite) {
+  await seite.waitForLoadState("networkidle").catch(() => {});
+  await seite.waitForSelector("[aria-busy=true]", { state: "detached", timeout: 10000 }).catch(() => {});
+}
+const { einladen } = require("./einladen");
 // Browser-Test gegen eine laufende App mit leerer Datenbank (siehe README).
 // Screenshots landen im Ordner, der als erstes Argument übergeben wird (Standard: Temp-Ordner).
 const path = require("node:path");
@@ -15,25 +22,30 @@ const ok = (c, m) => { if (!c) throw new Error("FEHLER: " + m); console.log("✓
   p.on("pageerror", (e) => fehler.push(e.message));
 
   await p.goto(B + "/");
-  ok(p.url().endsWith("/einrichtung"), "ohne Benutzer → Ersteinrichtung");
+  await bereit(p);
+  ok(await p.waitForURL(B + "/einrichtung/").then(() => true, () => false), "ohne Benutzer → Ersteinrichtung");
   await p.fill("#name", "Test Zugang");
   await p.fill("#email", "Test@Example.com");
   await p.fill("#passwort", "Testpasswort123");
   await p.fill("#passwort2", "Testpasswort123");
   await p.click("button");
   await p.waitForURL(B + "/");
+  await bereit(p);
   await p.goto(B + "/finanzen");
+  await bereit(p);
   ok(await p.isVisible("text=So geht"), "leere Übersicht zeigt Einstiegshilfe");
 
   const fix = async (bez, betrag, iv, kat, beginn) => {
     await p.goto(B + "/finanzen/fixkosten/neu");
+    await bereit(p);
     await p.fill("#bezeichnung", bez);
     await p.fill("#betrag", betrag);
     await p.selectOption("#intervall", iv);
     await p.selectOption("#kategorie", kat);
     await p.fill("#beginn", beginn);
     await p.click("text=Speichern");
-    await p.waitForURL(B + "/finanzen/fixkosten");
+    await p.waitForURL(B + "/finanzen/fixkosten/");
+    await bereit(p);
   };
   await fix("Werkstattmiete", "850,00", "monatlich", "Miete & Nebenkosten", "2026-01-01");
   await fix("Kfz-Versicherung Transporter", "1.440,00", "jaehrlich", "Versicherungen", "2026-01-01");
@@ -43,6 +55,7 @@ const ok = (c, m) => { if (!c) throw new Error("FEHLER: " + m); console.log("✓
 
   // Fehlerfall: ungültiger Betrag
   await p.goto(B + "/finanzen/rechnungen/neu");
+  await bereit(p);
   await p.fill("#lieferant", "GC Gruppe");
   await p.fill("#brutto", "abc");
   await p.selectOption("#kategorie", "Material / Großhandel");
@@ -53,6 +66,7 @@ const ok = (c, m) => { if (!c) throw new Error("FEHLER: " + m); console.log("✓
 
   const rechnung = async (o) => {
     await p.goto(B + "/finanzen/rechnungen/neu");
+    await bereit(p);
     if (o.datei) await p.setInputFiles("#datei", o.datei);
     await p.fill("#lieferant", o.lieferant);
     await p.fill("#rechnungsnummer", o.nr || "");
@@ -62,7 +76,8 @@ const ok = (c, m) => { if (!c) throw new Error("FEHLER: " + m); console.log("✓
     await p.selectOption("#kategorie", o.kat);
     if (o.bezahlt) await p.fill("#bezahltAm", o.bezahlt);
     await p.click("text=Speichern");
-    await p.waitForURL(B + "/finanzen/rechnungen");
+    await p.waitForURL(B + "/finanzen/rechnungen/");
+    await bereit(p);
   };
   await rechnung({ lieferant: "GC Gruppe", nr: "R-4711", datum: "2026-10-02", faellig: "2026-11-01", brutto: "2.380,00", kat: "Material / Großhandel", datei: path.join(__dirname, "rechnung.pdf") });
   await rechnung({ lieferant: "Würth", datum: "2026-10-10", faellig: "2026-10-20", brutto: "312,45", kat: "Werkzeug & Geräte" });
@@ -73,23 +88,30 @@ const ok = (c, m) => { if (!c) throw new Error("FEHLER: " + m); console.log("✓
   ok(await p.isVisible("text=5.213,15 €"), "Summe aller Rechnungen korrekt");
 
   // Datei abrufen
-  const link = await p.getAttribute("a:text('ansehen')", "href");
-  const r = await p.request.get(B + link);
+  const [anfrage] = await Promise.all([
+    ctx.waitForEvent("request", (a) => a.url().includes("token=")),
+    p.click("button:text('ansehen')"),
+  ]);
+  const r = await p.request.get(anfrage.url());
+  for (const tab of ctx.pages().slice(1)) await tab.close();
   ok(r.status() === 200 && r.headers()["content-type"] === "application/pdf", "hochgeladene PDF ist abrufbar");
 
   // Filter
   await p.goto(B + "/finanzen/rechnungen?monat=2026-10");
+  await bereit(p);
   ok(await p.isVisible("text=2.876,65 €"), "Monatsfilter Oktober summiert richtig");
 
   // Gehälter
   const gehalt = async (name, brutto, ag) => {
     await p.goto(B + "/finanzen/gehaelter/neu");
+    await bereit(p);
     await p.fill("#mitarbeiter", name);
     await p.fill("#brutto", brutto);
     await p.fill("#arbeitgeberanteil", ag);
     await p.fill("#gueltigAb", "2026-01-01");
     await p.click("text=Speichern");
-    await p.waitForURL(B + "/finanzen/gehaelter");
+    await p.waitForURL(B + "/finanzen/gehaelter/");
+    await bereit(p);
   };
   await gehalt("Monteur A", "3.400,00", "720,00");
   await gehalt("Monteur B", "3.100,00", "650,00");
@@ -98,6 +120,7 @@ const ok = (c, m) => { if (!c) throw new Error("FEHLER: " + m); console.log("✓
 
   // Übersicht (fester Monat, damit der Test auch später noch stimmt)
   await p.goto(B + "/finanzen?monat=2026-10");
+  await bereit(p);
   const text = (await p.textContent("main")).replace(/\u00a0/g, " ");
   // Okt: Rechnungen 2876,65 + Fix 1448,90 + Personal 9020 = 13345,55
   ok(text.includes("13.345,55 €"), "Kosten gesamt Oktober korrekt");
@@ -109,26 +132,37 @@ const ok = (c, m) => { if (!c) throw new Error("FEHLER: " + m); console.log("✓
 
   // Als bezahlt markieren
   await p.goto(B + "/finanzen/rechnungen?status=ueberfaellig");
+  await bereit(p);
   await p.click("text=als bezahlt markieren");
   await p.waitForTimeout(500);
   await p.goto(B + "/finanzen/rechnungen?status=ueberfaellig");
+  await bereit(p);
   ok(await p.isVisible("text=Keine Rechnungen für diesen Filter"), "als bezahlt markieren funktioniert");
 
-  // Benutzer anlegen
-  const nutzer = async (name, email, rolle) => {
-    await p.goto(B + "/einstellungen/benutzer");
-    await p.fill("#neu-name", name);
-    await p.fill("#neu-email", email);
-    await p.selectOption("#neu-rolle", rolle);
-    await p.fill("#neu-passwort", "Startpasswort1");
-    await p.click("button:text('Anlegen')");
-    await p.waitForSelector(`text=${name} wurde angelegt`);
-  };
-  await nutzer("Max Monteur", "max@example.com", "monteur");
-  await nutzer("Bea Büro", "bea@example.com", "buero");
-  ok((await p.inputValue("#neu-name")) === "", "Formular wird nach dem Anlegen geleert");
-  ok(true, "Monteur und Büro angelegt");
-
+  // Mitarbeiter einladen; sie registrieren sich selbst mit dem Code
+  await p.goto(B + "/registrieren/");
+  await bereit(p);
+  await p.fill("#email", "fremd@example.com");
+  await p.fill("#code", "ABCDEFGHIJ");
+  await p.fill("#passwort", "Startpasswort1");
+  await p.fill("#passwort2", "Startpasswort1");
+  await p.click("button");
+  await p.waitForSelector(".fehler-box");
+  ok((await p.textContent(".fehler-box")).includes("Einladungscode stimmen nicht"), "Registrierung ohne gültige Einladung wird abgelehnt");
+  await einladen(browser, p, B, "Max Monteur", "max@example.com", "monteur");
+  await einladen(browser, p, B, "Bea Büro", "bea@example.com", "buero");
+  ok((await p.inputValue("#neu-name")) === "", "Formular wird nach dem Einladen geleert");
+  await p.goto(B + "/einstellungen/benutzer/");
+  await bereit(p);
+  ok(await p.isVisible("text=bea@example.com") && !(await p.isVisible("text=Offene Einladungen")), "Monteur und Büro haben sich registriert");
+  await p.fill("#neu-name", "Olaf Offen");
+  await p.fill("#neu-email", "olaf@example.com");
+  await p.click("button:text('Einladen')");
+  await p.waitForSelector("text=Offene Einladungen");
+  p.once("dialog", (d) => d.accept());
+  await p.click("button:text('Zurückziehen')");
+  await p.waitForSelector("text=Offene Einladungen", { state: "detached" });
+  ok(true, "offene Einladung wird angezeigt und kann zurückgezogen werden");
   // Letzten Inhaber nicht deaktivierbar
   const meineZeile = p.locator("form", { hasText: "(du)" });
   await meineZeile.locator("select").selectOption("monteur");
@@ -139,19 +173,23 @@ const ok = (c, m) => { if (!c) throw new Error("FEHLER: " + m); console.log("✓
   // Monteur-Rechte
   const m = await (await browser.newContext()).newPage();
   await m.goto(B + "/login");
+  await bereit(m);
   await m.fill("#email", "max@example.com");
   await m.fill("#passwort", "Startpasswort1");
   await m.click("button");
   await m.waitForURL(B + "/");
+  await bereit(m);
   ok(await m.isVisible("text=Hallo Max"), "Monteur landet auf seiner Startseite");
   await m.goto(B + "/finanzen/rechnungen");
-  ok(m.url() === B + "/", "Monteur kommt nicht an die Rechnungen");
-  ok((await m.request.get(B + link)).status() === 403, "Monteur kann Rechnungsdatei nicht abrufen");
+  await bereit(m);
+  ok(await m.waitForURL(B + "/").then(() => true, () => false), "Monteur kommt nicht an die Rechnungen");
+  // Dass Monteure keine Rechnungsdateien abrufen können, prüft supabase/test/rechte.test.ts
 
   // Büro-Rechte
   const bc = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true });
   const bp = await bc.newPage();
   await bp.goto(B + "/login");
+  await bereit(bp);
   await bp.fill("#email", "bea@example.com");
   await bp.fill("#passwort", "falsch-falsch");
   await bp.click("button");
@@ -160,15 +198,20 @@ const ok = (c, m) => { if (!c) throw new Error("FEHLER: " + m); console.log("✓
   await bp.fill("#passwort", "Startpasswort1");
   await bp.click("button");
   await bp.waitForURL(B + "/");
+  await bereit(bp);
   await bp.goto(B + "/finanzen?monat=2026-10");
+  await bereit(bp);
   const btext = (await bp.textContent("body")).replace(/\u00a0/g, " ");
   ok(!btext.includes("Gehälter") && !btext.includes("Arbeitgeberanteile") && !btext.includes("9.020"), "Büro sieht keine Gehälter");
   ok(btext.includes("4.325,55 €"), "Büro-Summe ohne Personal korrekt");
   await bp.goto(B + "/finanzen/gehaelter");
-  ok(bp.url() === B + "/", "Büro kommt nicht an die Gehälter (umgeleitet auf Startseite)");
+  await bereit(bp);
+  ok(await bp.waitForURL(B + "/").then(() => true, () => false), "Büro kommt nicht an die Gehälter (umgeleitet auf Startseite)");
   await bp.goto(B + "/finanzen");
+  await bereit(bp);
   await bp.screenshot({ path: S + "/shots/uebersicht-handy.png", fullPage: true });
   await bp.goto(B + "/finanzen/rechnungen/neu");
+  await bereit(bp);
   await bp.screenshot({ path: S + "/shots/rechnung-handy.png", fullPage: true });
   const breite = await bp.evaluate(() => document.documentElement.scrollWidth);
   ok(breite <= 390, "keine waagerechte Scrollleiste am Handy (" + breite + "px)");
