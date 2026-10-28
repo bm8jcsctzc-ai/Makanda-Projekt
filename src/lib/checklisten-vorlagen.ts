@@ -43,7 +43,7 @@ export const START_VORLAGEN: VorlagenEntwurf[] = [
       p("dichtungen", "Dichtungen geprüft, ggf. erneuert"),
       p("siphon", "Kondensatablauf und Siphon gereinigt und befüllt"),
       p("gasdicht", "Gasleitung und Armaturen auf Dichtheit geprüft"),
-      mess("gasdruck", "Gas-Anschlussdruck (Fließdruck)", "mbar", { min: 18, max: 25, hilfe: "Richtwert Erdgas: 18–25 mbar" }),
+      mess("gasdruck", "Gas-Anschlussdruck (Fließdruck)", "mbar", { min: 18, max: 25, hilfe: "Erdgas" }),
       mess("co2", "CO₂ bei Volllast", "%", { hilfe: "Sollwert laut Hersteller" }),
       mess("co", "CO unverdünnt", "ppm", { max: 1000 }),
       mess("abgastemp", "Abgastemperatur", "°C", { pflicht: false }),
