@@ -1,25 +1,24 @@
 import { abmelden } from "@/app/login/actions";
 import { Navigation, type NavPunkt } from "@/components/Navigation";
-import { benoetigeBenutzer, DARF_BENUTZER, DARF_FINANZEN, DARF_GEHAELTER, ROLLEN_NAMEN } from "@/lib/auth";
+import { benoetigeBenutzer, DARF_FINANZEN, ROLLEN_NAMEN } from "@/lib/auth";
+import { DARF_PLANEN } from "@/lib/technik";
 
 export const dynamic = "force-dynamic";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const b = await benoetigeBenutzer();
-  const punkte: NavPunkt[] = [];
-  if (DARF_FINANZEN.includes(b.rolle)) {
-    punkte.push(
-      { href: "/finanzen", titel: "Übersicht" },
-      { href: "/finanzen/rechnungen", titel: "Rechnungen" },
-      { href: "/finanzen/fixkosten", titel: "Fixkosten" },
-    );
-  }
-  if (DARF_GEHAELTER.includes(b.rolle)) punkte.push({ href: "/finanzen/gehaelter", titel: "Gehälter" });
-  if (DARF_BENUTZER.includes(b.rolle)) punkte.push({ href: "/einstellungen/benutzer", titel: "Benutzer" });
+  const planer = DARF_PLANEN.includes(b.rolle);
+  const punkte: NavPunkt[] = [
+    { href: "/", titel: "Heute" },
+    ...(planer ? [{ href: "/einsaetze", titel: "Einsätze" }] : []),
+    { href: "/kunden", titel: "Kunden" },
+    ...(DARF_FINANZEN.includes(b.rolle) ? [{ href: "/finanzen", titel: "Finanzen" }] : []),
+    ...(planer ? [{ href: "/einstellungen", titel: "Einstellungen" }] : []),
+  ];
 
   return (
     <div className="min-h-dvh">
-      <header className="border-b border-slate-200 bg-white">
+      <header className="border-b border-slate-200 bg-white print:hidden">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
           <span className="font-semibold text-marke">Makanda</span>
           <div className="order-3 w-full sm:order-none sm:w-auto sm:flex-1">

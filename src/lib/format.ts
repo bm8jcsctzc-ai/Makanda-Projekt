@@ -53,3 +53,10 @@ export function formatMonatKurz(monat: string): string {
 export function heute(): string {
   return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Berlin" }).format(new Date());
 }
+
+const DATUM_ZEIT = new Intl.DateTimeFormat("de-DE", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Berlin" });
+
+/** Zeitpunkt in deutscher Zeit, z. B. "28.10.2026, 14:05" */
+export function formatDatumZeit(zeitpunkt: Date): string {
+  return DATUM_ZEIT.format(zeitpunkt);
+}

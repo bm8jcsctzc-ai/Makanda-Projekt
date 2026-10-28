@@ -10,16 +10,26 @@ import { datei } from "@/db/schema";
 
 const BASIS = path.join(process.cwd(), "data", "uploads");
 
-export const ERLAUBTE_TYPEN = ["application/pdf", "image/jpeg", "image/png", "image/heic", "image/webp"];
+// Kein SVG: das könnte Skripte enthalten
+const BILD_TYPEN = ["image/jpeg", "image/png", "image/heic", "image/webp"];
+export const ERLAUBTE_TYPEN = ["application/pdf", ...BILD_TYPEN];
 export const MAX_GROESSE = 15 * 1024 * 1024;
 
 export class DateiFehler extends Error {}
 
+export type Bereich = "finanzen" | "technik";
+
 /** Speichert eine hochgeladene Datei und gibt die ID des Datensatzes zurück. Leere Felder ergeben null. */
-export async function speichereDatei(f: File | null, benutzerId: string): Promise<string | null> {
+export async function speichereDatei(
+  f: File | null,
+  benutzerId: string,
+  bereich: Bereich = "finanzen",
+): Promise<string | null> {
   if (!f || f.size === 0) return null;
-  if (!ERLAUBTE_TYPEN.includes(f.type)) {
-    throw new DateiFehler("Nur PDF oder Fotos (JPG, PNG, HEIC, WebP) sind erlaubt.");
+  if (bereich === "technik" ? !BILD_TYPEN.includes(f.type) : !ERLAUBTE_TYPEN.includes(f.type)) {
+    throw new DateiFehler(
+      bereich === "technik" ? "Hier sind nur Fotos erlaubt." : "Nur PDF oder Fotos (JPG, PNG, HEIC, WebP) sind erlaubt.",
+    );
   }
   if (f.size > MAX_GROESSE) throw new DateiFehler("Die Datei ist größer als 15 MB.");
 
@@ -40,6 +50,7 @@ export async function speichereDatei(f: File | null, benutzerId: string): Promis
       mimeType: f.type,
       groesse: f.size,
       speicherPfad: relativ,
+      bereich,
       hochgeladenVon: benutzerId,
     })
     .returning({ id: datei.id });

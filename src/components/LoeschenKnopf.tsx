@@ -1,7 +1,7 @@
 "use client";
 
 /** Löschen-Knopf mit Sicherheitsabfrage. `aktion` ist eine Server-Aktion ohne Parameter. */
-export function LoeschenKnopf({ aktion, frage }: { aktion: () => Promise<void>; frage: string }) {
+export function LoeschenKnopf({ aktion, frage, klein = false }: { aktion: () => Promise<void>; frage: string; klein?: boolean }) {
   return (
     <form
       action={aktion}
@@ -9,7 +9,7 @@ export function LoeschenKnopf({ aktion, frage }: { aktion: () => Promise<void>; 
         if (!confirm(frage)) e.preventDefault();
       }}
     >
-      <button className="btn-gefahr">Löschen</button>
+      <button className={klein ? "text-red-700 underline" : "btn-gefahr"}>Löschen</button>
     </form>
   );
 }

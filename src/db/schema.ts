@@ -2,6 +2,7 @@ import {
   boolean,
   date,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -29,6 +30,8 @@ export const datei = pgTable("datei", {
   mimeType: text("mime_type").notNull(),
   groesse: integer("groesse").notNull(),
   speicherPfad: text("speicher_pfad").notNull(),
+  // finanzen: nur Inhaber und Büro · technik: alle angemeldeten Benutzer
+  bereich: text("bereich").notNull().default("finanzen"),
   hochgeladenVon: uuid("hochgeladen_von").references(() => benutzer.id),
   hochgeladenAm: timestamp("hochgeladen_am", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -86,3 +89,141 @@ export type Rechnung = typeof rechnung.$inferSelect;
 export type Fixkosten = typeof fixkosten.$inferSelect;
 export type Intervall = (typeof intervall.enumValues)[number];
 export type Personalkosten = typeof personalkosten.$inferSelect;
+
+// ---------- Technik: Kunden, Anlagen, Einsätze, Checklisten, Fotos ----------
+
+export const kunde = pgTable("kunde", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  ansprechpartner: text("ansprechpartner"),
+  strasse: text("strasse"),
+  plz: text("plz"),
+  ort: text("ort"),
+  telefon: text("telefon"),
+  email: text("email"),
+  // Hinweise für die Monteure, z. B. "Schlüssel beim Nachbarn", "Hund"
+  hinweise: text("hinweise"),
+  taifunKundennr: text("taifun_kundennr"),
+  erstelltAm: timestamp("erstellt_am", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const anlagentyp = pgEnum("anlagentyp", ["gas", "oel", "waermepumpe", "klima", "sonstige"]);
+
+export const anlage = pgTable("anlage", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  kundeId: uuid("kunde_id").notNull().references(() => kunde.id, { onDelete: "cascade" }),
+  typ: anlagentyp("typ").notNull(),
+  bezeichnung: text("bezeichnung"),
+  hersteller: text("hersteller"),
+  modell: text("modell"),
+  seriennummer: text("seriennummer"),
+  baujahr: integer("baujahr"),
+  leistungKw: text("leistung_kw"),
+  kaeltemittel: text("kaeltemittel"),
+  kaeltemittelKg: text("kaeltemittel_kg"),
+  // Wo im Gebäude, z. B. "Keller, Heizraum"
+  aufstellort: text("aufstellort"),
+  wartungsintervallMonate: integer("wartungsintervall_monate").notNull().default(12),
+  letzteWartungAm: date("letzte_wartung_am"),
+  naechsteWartungAm: date("naechste_wartung_am"),
+  notiz: text("notiz"),
+  erstelltAm: timestamp("erstellt_am", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const einsatzart = pgEnum("einsatzart", ["wartung", "stoerung", "montage", "sonstiges"]);
+export const einsatzstatus = pgEnum("einsatzstatus", ["geplant", "in_arbeit", "abgeschlossen"]);
+
+export const einsatz = pgTable("einsatz", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  kundeId: uuid("kunde_id").notNull().references(() => kunde.id, { onDelete: "cascade" }),
+  anlageId: uuid("anlage_id").references(() => anlage.id, { onDelete: "set null" }),
+  monteurId: uuid("monteur_id").references(() => benutzer.id),
+  datum: date("datum").notNull(),
+  uhrzeit: text("uhrzeit"),
+  art: einsatzart("art").notNull(),
+  beschreibung: text("beschreibung"),
+  status: einsatzstatus("status").notNull().default("geplant"),
+  abschlussBemerkung: text("abschluss_bemerkung"),
+  abgeschlossenAm: timestamp("abgeschlossen_am", { withTimezone: true }),
+  erstelltAm: timestamp("erstellt_am", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Ein Prüfpunkt einer Checkliste */
+export type Pruefpunkt = {
+  id: string;
+  text: string;
+  // pruefung: in Ordnung / nicht in Ordnung / entfällt · messwert: Zahl mit Einheit · text: freier Text
+  typ: "pruefung" | "messwert" | "text";
+  einheit?: string;
+  min?: number;
+  max?: number;
+  pflicht: boolean;
+  hilfe?: string;
+};
+
+/** Antwort auf einen Prüfpunkt */
+export type Antwort = {
+  wert?: string; // "io" | "nio" | "entfaellt" bei Prüfungen, sonst Zahl oder Text
+  bemerkung?: string;
+};
+
+export const checklisteVorlage = pgTable("checkliste_vorlage", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  // null = passt zu jeder Anlage
+  anlagentyp: anlagentyp("anlagentyp"),
+  // Ist das eine Wartung? Dann wird beim Abschluss das nächste Wartungsdatum der Anlage gesetzt.
+  istWartung: boolean("ist_wartung").notNull().default(false),
+  version: integer("version").notNull().default(1),
+  punkte: jsonb("punkte").$type<Pruefpunkt[]>().notNull(),
+  aktiv: boolean("aktiv").notNull().default(true),
+  erstelltAm: timestamp("erstellt_am", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const checklisteErgebnis = pgTable("checkliste_ergebnis", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  einsatzId: uuid("einsatz_id").notNull().references(() => einsatz.id, { onDelete: "cascade" }),
+  anlageId: uuid("anlage_id").references(() => anlage.id, { onDelete: "set null" }),
+  vorlageId: uuid("vorlage_id").references(() => checklisteVorlage.id, { onDelete: "set null" }),
+  // Kopie der Vorlage zum Zeitpunkt des Ausfüllens – spätere Änderungen an der Vorlage ändern alte Ergebnisse nicht
+  name: text("name").notNull(),
+  istWartung: boolean("ist_wartung").notNull(),
+  punkte: jsonb("punkte").$type<Pruefpunkt[]>().notNull(),
+  antworten: jsonb("antworten").$type<Record<string, Antwort>>().notNull().default({}),
+  abgeschlossen: boolean("abgeschlossen").notNull().default(false),
+  ausgefuelltVon: uuid("ausgefuellt_von").references(() => benutzer.id),
+  geaendertAm: timestamp("geaendert_am", { withTimezone: true }).notNull().defaultNow(),
+  abgeschlossenAm: timestamp("abgeschlossen_am", { withTimezone: true }),
+});
+
+export const fotokategorie = pgEnum("fotokategorie", [
+  "typenschild",
+  "vorher",
+  "nachher",
+  "messwert",
+  "schaden",
+  "sonstiges",
+]);
+
+export const foto = pgTable("foto", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  dateiId: uuid("datei_id").notNull().references(() => datei.id, { onDelete: "cascade" }),
+  einsatzId: uuid("einsatz_id").references(() => einsatz.id, { onDelete: "set null" }),
+  anlageId: uuid("anlage_id").references(() => anlage.id, { onDelete: "cascade" }),
+  kundeId: uuid("kunde_id").notNull().references(() => kunde.id, { onDelete: "cascade" }),
+  kategorie: fotokategorie("kategorie").notNull(),
+  beschreibung: text("beschreibung"),
+  aufgenommenVon: uuid("aufgenommen_von").references(() => benutzer.id),
+  aufgenommenAm: timestamp("aufgenommen_am", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type Kunde = typeof kunde.$inferSelect;
+export type Anlage = typeof anlage.$inferSelect;
+export type Anlagentyp = (typeof anlagentyp.enumValues)[number];
+export type Einsatz = typeof einsatz.$inferSelect;
+export type Einsatzart = (typeof einsatzart.enumValues)[number];
+export type Einsatzstatus = (typeof einsatzstatus.enumValues)[number];
+export type ChecklisteVorlage = typeof checklisteVorlage.$inferSelect;
+export type ChecklisteErgebnis = typeof checklisteErgebnis.$inferSelect;
+export type Fotokategorie = (typeof fotokategorie.enumValues)[number];
+export type Foto = typeof foto.$inferSelect;

@@ -5,6 +5,24 @@ Der technische Gesamtplan steht in [`docs/BAUPLAN.md`](docs/BAUPLAN.md).
 
 ## Was die App schon kann
 
+**Einsätze, Kunden, Anlagen**
+- **Heute:** Jeder sieht seine Einsätze des Tages und der nächsten Tage. Inhaber und Büro sehen zusätzlich alle Einsätze des Tages.
+- **Einsätze planen:** Kunde, Anlage, Monteur, Datum und Uhrzeit, Art (Wartung, Störung, Montage). Warnung, wenn ein Einsatz noch keinen Monteur hat.
+- **Einsatz am Handy:** Kundenhinweise, Navigation, Anruf-Knopf, Checklisten, Fotos, Abschluss mit Bemerkung
+- **Kunden:** Adresse, Kontakt, Hinweise für Monteure, TAIFUN-Kundennummer, Suche
+- **Digitale Anlagenakte:** technische Daten, Wartungsintervall, nächste Wartung (überfällige rot), Fotos, alle Checklisten mit Auffälligkeiten
+
+**Checklisten**
+- Vorlagen für Wartung von Gas-Brennwertgerät, Öl-Heizung, Wärmepumpe und Klimaanlage sowie für Störung/Reparatur
+- Prüfpunkte (i. O. / nicht i. O. / entfällt), Messwerte mit Richtwert-Warnung, Freitext und Bemerkungen
+- Pflichtfelder, Zwischenspeichern, Druckansicht (als PDF speichern)
+- Eine abgeschlossene Wartung setzt automatisch das nächste Wartungsdatum der Anlage.
+- Vorlagen lassen sich unter Einstellungen › Checklisten anpassen. Bereits ausgefüllte Checklisten bleiben unverändert.
+
+**Fotos**
+- direkt mit der Handykamera, mehrere auf einmal, mit Kategorie (Typenschild, vorher/nachher, Messwert, Schaden)
+- werden vor dem Hochladen automatisch verkleinert (spart mobile Daten)
+
 **Finanzen**
 - **Übersicht:** Kosten pro Monat, Vergleich zum Vormonat, Verlauf über 12 Monate, Aufteilung nach Kategorie, offene und überfällige Rechnungen
 - **Rechnungen:** PDF oder Handyfoto hochladen, Betrag, Kategorie, Fälligkeit, „bezahlt“-Status, Filter nach Monat, Kategorie und Status
@@ -16,8 +34,8 @@ Der technische Gesamtplan steht in [`docs/BAUPLAN.md`](docs/BAUPLAN.md).
 | Rolle | darf |
 |---|---|
 | Inhaber | alles, auch Gehälter und Benutzer verwalten |
-| Büro | Übersicht, Rechnungen, Fixkosten (keine Gehälter) |
-| Monteur | eigene Startseite (Einsätze, Checklisten und Fotos folgen) |
+| Büro | Einsätze planen, Kunden, Checklisten-Vorlagen, Rechnungen, Fixkosten (keine Gehälter, keine Benutzer) |
+| Monteur | eigene Einsätze bearbeiten (Checkliste, Fotos, Abschluss), Kunden und Anlagen ansehen, Anlagendaten erfassen – keine Finanzen |
 
 ## Auf dem eigenen Rechner starten
 
@@ -45,6 +63,7 @@ Die Ablage der hochgeladenen Dateien (`src/lib/dateien.ts`) wird für den Live-B
 
 ```bash
 npm test              # Tests der Rechenlogik
+npm run test:e2e      # Browser-Tests (App muss mit leerer Datenbank auf Port 3100 laufen: rm -rf data && PORT=3100 npm start)
 npm run lint          # Code-Prüfung
 npm run build         # Produktions-Build
 npm run db:migration  # nach Änderungen an src/db/schema.ts neue Migration erzeugen
