@@ -42,7 +42,8 @@ async function startdatenAnlegen(db: Db) {
   if (anzahl === 0) await db.insert(schema.checklisteVorlage).values(START_VORLAGEN);
   await db
     .insert(schema.einstellungen)
-    .values({ id: 1, erinnerungBetreff: STANDARD_BETREFF, erinnerungText: STANDARD_TEXT })
+    // Der Betrieb sitzt in Baden-Württemberg (Feiertage im Urlaubsplaner)
+    .values({ id: 1, erinnerungBetreff: STANDARD_BETREFF, erinnerungText: STANDARD_TEXT, bundesland: "BW" })
     .onConflictDoNothing();
 }
 

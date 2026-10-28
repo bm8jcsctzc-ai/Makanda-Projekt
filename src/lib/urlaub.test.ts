@@ -26,6 +26,27 @@ describe("Feiertage", () => {
     expect(feiertag("2026-01-06", "BW")).toBe("Heilige Drei Könige");
   });
 
+  it("Baden-Württemberg 2026: 12 Feiertage, kein Reformationstag", () => {
+    const bw = feiertage(2026, "BW");
+    expect([...bw.values()]).toEqual([
+      "Neujahr",
+      "Heilige Drei Könige",
+      "Karfreitag",
+      "Ostermontag",
+      "Tag der Arbeit",
+      "Christi Himmelfahrt",
+      "Pfingstmontag",
+      "Fronleichnam",
+      "Tag der Deutschen Einheit",
+      "Allerheiligen",
+      "1. Weihnachtstag",
+      "2. Weihnachtstag",
+    ]);
+    expect(feiertag("2026-10-31", "BW")).toBeNull();
+    // Woche mit Fronleichnam (Do, 04.06.2026)
+    expect(arbeitstage({ von: "2026-06-01", bis: "2026-06-05", halbtags: false }, "BW")).toBe(4);
+  });
+
   it("ohne Bundesland nur bundesweite Feiertage", () => {
     expect(feiertage(2026, null).size).toBe(9);
     expect(feiertage(2026, "BY").size).toBe(13);

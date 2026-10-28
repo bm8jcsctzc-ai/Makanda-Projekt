@@ -28,7 +28,7 @@ async function login(browser, email, pw, mobil = false) {
 
   // Bundesland und Team
   await p.goto(B + "/einstellungen/wartung");
-  await p.selectOption("#bundesland", "NI");
+  ok((await p.inputValue("#bundesland")) === "BW", "Baden-Württemberg ist voreingestellt");
   await p.click("button:text('Speichern')");
   await p.waitForSelector("text=Gespeichert.");
   await p.goto(B + "/einstellungen/benutzer");
@@ -42,7 +42,7 @@ async function login(browser, email, pw, mobil = false) {
   await p.fill("#neu-passwort", "Startpasswort1");
   await p.click("button:text('Anlegen')");
   await p.waitForSelector("text=Moritz Monteur wurde angelegt");
-  ok(true, "Bundesland Niedersachsen gesetzt, Büro aus dem Team genommen, zweiter Monteur angelegt");
+  ok(true, "Büro aus dem Team genommen, zweiter Monteur angelegt");
 
   // ---- Max beantragt am Handy ----
   const m = await login(browser, "max@example.com", "Startpasswort1", true);
@@ -50,7 +50,7 @@ async function login(browser, email, pw, mobil = false) {
   ok(!(await m.isVisible("#benutzerId")) && !(await m.isVisible("#art")), "Monteur kann nur für sich Urlaub beantragen");
   await m.fill("#von", "2030-10-28");
   await m.fill("#bis", "2030-11-01");
-  ok(norm(await m.textContent("[data-testid=arbeitstage]")).includes("4 Tage"), "Live-Berechnung: Reformationstag wird abgezogen (4 Tage)");
+  ok(norm(await m.textContent("[data-testid=arbeitstage]")).includes("4 Tage"), "Live-Berechnung: Allerheiligen (Fr, 01.11.2030) wird abgezogen (4 Tage)");
   await m.fill("#von", "2030-08-03");
   await m.fill("#bis", "2030-08-04");
   await m.click("button:text('Urlaub beantragen')");
