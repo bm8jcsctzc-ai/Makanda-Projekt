@@ -60,9 +60,14 @@ export function BenutzerZeile({ benutzer: b, aktion, binIchSelbst }: { benutzer:
       <select className="eingabe" name="rolle" defaultValue={b.rolle} aria-label="Rolle">
         {ROLLEN.map((r) => <option key={r.wert} value={r.wert}>{r.name.split(" – ")[0]}</option>)}
       </select>
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" name="aktiv" defaultChecked={b.aktiv} className="size-4" /> aktiv
-      </label>
+      <div className="flex flex-col gap-1 text-sm">
+        <label className="flex items-center gap-2">
+          <input type="checkbox" name="aktiv" defaultChecked={b.aktiv} className="size-4" /> aktiv
+        </label>
+        <label className="flex items-center gap-2 whitespace-nowrap">
+          <input type="checkbox" name="imTeam" defaultChecked={b.imTeam} className="size-4" /> im Urlaubsplaner
+        </label>
+      </div>
       <input className="eingabe" name="passwort" placeholder="neues Passwort (optional)" minLength={10} autoComplete="new-password" aria-label="Neues Passwort" />
       <button className="btn" disabled={laeuft}>Speichern</button>
       {zustand && <div className="md:col-span-5"><Meldung zustand={zustand} /></div>}

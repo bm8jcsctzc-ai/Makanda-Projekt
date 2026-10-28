@@ -9,7 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "db:migration": "drizzle-kit generate",
-    "test:e2e": "node e2e/finanzen.js && node e2e/technik.js && node e2e/wartung.js"
+    "test:e2e": "node e2e/finanzen.js && node e2e/technik.js && node e2e/wartung.js && node e2e/urlaub.js"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.13",

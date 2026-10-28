@@ -11,6 +11,7 @@ import { istUuid } from "@/lib/aktionen";
 import { benoetigeBenutzer } from "@/lib/auth";
 import { formatDatum, formatDatumZeit } from "@/lib/format";
 import { ladeFotos } from "@/lib/fotos";
+import { ladeAbwesenheiten } from "@/lib/urlaub-daten";
 import { adresse, anlagenName, DARF_PLANEN, darfEinsatzBearbeiten, EINSATZARTEN, navigationsLink, pruefeChecklist } from "@/lib/technik";
 import { checklisteStarten } from "../checkliste-actions";
 import { einsatzAbschliessen, einsatzWiederOeffnen } from "../actions";
@@ -49,6 +50,7 @@ export default async function EinsatzSeite({ params }: { params: Promise<{ id: s
         : !v.istWartung && (v.anlagentyp == null || v.anlagentyp === a?.typ),
   }));
   const nav = navigationsLink(k);
+  const abwesend = e.monteurId && offen ? (await ladeAbwesenheiten(e.datum, e.datum, e.monteurId))[0] : undefined;
 
   return (
     <>
@@ -63,6 +65,12 @@ export default async function EinsatzSeite({ params }: { params: Promise<{ id: s
         }
         aktionen={planer && <Link className="btn" href={`/einsaetze/${id}/bearbeiten`}>Bearbeiten</Link>}
       />
+
+      {abwesend && planer && (
+        <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+          ⚠ {monteur} ist an diesem Tag abwesend{abwesend.status === "beantragt" ? " (Urlaub beantragt)" : ""} – bitte umplanen.
+        </p>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-3">
         <section className="karte space-y-3">

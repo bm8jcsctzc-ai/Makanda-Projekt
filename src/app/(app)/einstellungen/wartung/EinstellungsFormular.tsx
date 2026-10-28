@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { Einstellungen } from "@/db/schema";
 import type { FormularZustand } from "@/lib/aktionen";
+import { BUNDESLAENDER } from "@/lib/feiertage";
 import { useFormular } from "@/lib/useFormular";
 import { fuelleText, PLATZHALTER, STANDARD_BETREFF, STANDARD_TEXT } from "@/lib/wartungsplan";
 
@@ -28,7 +29,14 @@ export function EinstellungsFormular({ aktion, werte: w }: Props) {
           <label className="feld-label" htmlFor="firmaTelefon">Telefon für Kunden</label>
           <input className="eingabe" id="firmaTelefon" name="firmaTelefon" type="tel" value={telefon} onChange={(e) => setTelefon(e.target.value)} />
         </div>
-        <div className="sm:col-span-2">
+        <div>
+          <label className="feld-label" htmlFor="bundesland">Bundesland (für Feiertage im Urlaubsplaner)</label>
+          <select className="eingabe" id="bundesland" name="bundesland" defaultValue={w.bundesland ?? ""}>
+            <option value="">– bitte wählen –</option>
+            {Object.entries(BUNDESLAENDER).map(([kuerzel, name]) => <option key={kuerzel} value={kuerzel}>{name}</option>)}
+          </select>
+        </div>
+        <div>
           <label className="feld-label" htmlFor="bueroEmail">Büro-E-Mail (bekommt Wochenbericht und Erinnerungs-Übersicht; Kunden antworten hierhin)</label>
           <input className="eingabe" id="bueroEmail" name="bueroEmail" type="email" defaultValue={w.bueroEmail ?? ""} />
         </div>

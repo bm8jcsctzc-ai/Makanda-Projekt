@@ -6,6 +6,8 @@ import { benoetigeBenutzer } from "@/lib/auth";
 import { ladeEinsaetze, nachDatum, tagesTitel } from "@/lib/einsaetze";
 import { ladeEinstellungen } from "@/lib/einstellungen";
 import { formatMonat, heute } from "@/lib/format";
+import { ARTEN } from "@/lib/urlaub";
+import { ladeAbwesenheiten } from "@/lib/urlaub-daten";
 import { ladeWartungen } from "@/lib/wartung-daten";
 import { monatsLast, naechsteMonate, wartungsStatus } from "@/lib/wartungsplan";
 import { DARF_PLANEN, plusTage } from "@/lib/technik";
@@ -40,6 +42,7 @@ export default async function Heute() {
   ]);
   const hatEigene = meineHeute.length + meineBald.length + meineLiegengeblieben.length > 0;
   const wartung = planer ? await wartungsHinweis(stichtag) : null;
+  const abwesendHeute = planer ? await ladeAbwesenheiten(stichtag, stichtag) : [];
 
   return (
     <div className="space-y-6">
@@ -76,6 +79,13 @@ export default async function Heute() {
             </div>
           ))}
         </section>
+      )}
+
+      {abwesendHeute.length > 0 && (
+        <p className="rounded-xl border border-slate-200 bg-white p-3 text-sm">
+          <span className="font-medium">Heute abwesend:</span>{" "}
+          {abwesendHeute.map((a) => `${a.name} (${ARTEN[a.art].name}${a.status === "beantragt" ? ", beantragt" : ""})`).join(", ")}
+        </p>
       )}
 
       {wartung && (wartung.ueberfaellig > 0 || wartung.baldOhneTermin > 0 || wartung.haeufungen.length > 0) && (

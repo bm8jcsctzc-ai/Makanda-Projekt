@@ -23,6 +23,15 @@ Der technische Gesamtplan steht in [`docs/BAUPLAN.md`](docs/BAUPLAN.md).
   - Text der Erinnerung unter Einstellungen › Wartung & E-Mails anpassbar, mit Vorschau
   - **Testmodus**, solange kein Mail-Dienst eingerichtet ist: Mails erscheinen nur im E-Mail-Protokoll
 
+**Urlaubsplaner**
+- Monteure beantragen Urlaub selbst (auch halbe Tage), der Inhaber genehmigt oder lehnt mit Begründung ab – beide bekommen eine E-Mail
+- Arbeitstage werden automatisch berechnet: ohne Wochenenden und gesetzliche Feiertage des eingestellten Bundeslands
+- Beim Genehmigen: Hinweis, wer gleichzeitig fehlt und welche Einsätze in der Zeit geplant sind
+- Inhaber und Büro tragen Krankheit, Berufsschule und Sonstiges ein (gilt sofort)
+- Teamkalender pro Monat; Kollegen sehen nur „abwesend“, nicht den Grund
+- Urlaubskonto pro Jahr: Anspruch, Übertrag aus dem Vorjahr, genehmigt, beantragt, Rest
+- Einsatzplanung warnt, wenn der Monteur an dem Tag abwesend ist; „Heute abwesend“ auf der Startseite
+
 **Checklisten**
 - Vorlagen für Wartung von Gas-Brennwertgerät, Öl-Heizung, Wärmepumpe und Klimaanlage sowie für Störung/Reparatur
 - Prüfpunkte (i. O. / nicht i. O. / entfällt), Messwerte mit Richtwert-Warnung, Freitext und Bemerkungen
@@ -44,9 +53,9 @@ Der technische Gesamtplan steht in [`docs/BAUPLAN.md`](docs/BAUPLAN.md).
 
 | Rolle | darf |
 |---|---|
-| Inhaber | alles, auch Gehälter und Benutzer verwalten |
-| Büro | Einsätze planen, Kunden, Checklisten-Vorlagen, Rechnungen, Fixkosten (keine Gehälter, keine Benutzer) |
-| Monteur | eigene Einsätze bearbeiten (Checkliste, Fotos, Abschluss), Kunden und Anlagen ansehen, Anlagendaten erfassen – keine Finanzen |
+| Inhaber | alles, auch Gehälter, Benutzer und Urlaub genehmigen |
+| Büro | Einsätze planen, Kunden, Checklisten-Vorlagen, Abwesenheiten eintragen, Rechnungen, Fixkosten (keine Gehälter, keine Benutzer, kein Genehmigen) |
+| Monteur | eigene Einsätze bearbeiten (Checkliste, Fotos, Abschluss), Kunden und Anlagen ansehen, Anlagendaten erfassen, Urlaub beantragen – keine Finanzen |
 
 ## Auf dem eigenen Rechner starten
 

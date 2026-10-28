@@ -1,0 +1,1645 @@
+{
+  "id": "6150c931-685a-4ed1-99d5-a391a75f69a8",
+  "prevId": "21827114-a086-477d-b3bb-a7ccd24ffd4a",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.abwesenheit": {
+      "name": "abwesenheit",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "benutzer_id": {
+          "name": "benutzer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "art": {
+          "name": "art",
+          "type": "abwesenheitsart",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "von": {
+          "name": "von",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bis": {
+          "name": "bis",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "halbtags": {
+          "name": "halbtags",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "status": {
+          "name": "status",
+          "type": "abwesenheitsstatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bemerkung": {
+          "name": "bemerkung",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "entscheidung_kommentar": {
+          "name": "entscheidung_kommentar",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "entschieden_von": {
+          "name": "entschieden_von",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "entschieden_am": {
+          "name": "entschieden_am",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "eingetragen_von": {
+          "name": "eingetragen_von",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "erstellt_am": {
+          "name": "erstellt_am",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "abwesenheit_benutzer_id_benutzer_id_fk": {
+          "name": "abwesenheit_benutzer_id_benutzer_id_fk",
+          "tableFrom": "abwesenheit",
+          "tableTo": "benutzer",
+          "columnsFrom": [
+            "benutzer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "abwesenheit_entschieden_von_benutzer_id_fk": {
+          "name": "abwesenheit_entschieden_von_benutzer_id_fk",
+          "tableFrom": "abwesenheit",
+          "tableTo": "benutzer",
+          "columnsFrom": [
+            "entschieden_von"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "abwesenheit_eingetragen_von_benutzer_id_fk": {
+          "name": "abwesenheit_eingetragen_von_benutzer_id_fk",
+          "tableFrom": "abwesenheit",
+          "tableTo": "benutzer",
+          "columnsFrom": [
+            "eingetragen_von"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.anlage": {
+      "name": "anlage",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "kunde_id": {
+          "name": "kunde_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "typ": {
+          "name": "typ",
+          "type": "anlagentyp",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bezeichnung": {
+          "name": "bezeichnung",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hersteller": {
+          "name": "hersteller",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "modell": {
+          "name": "modell",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "seriennummer": {
+          "name": "seriennummer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "baujahr": {
+          "name": "baujahr",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "leistung_kw": {
+          "name": "leistung_kw",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kaeltemittel": {
+          "name": "kaeltemittel",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kaeltemittel_kg": {
+          "name": "kaeltemittel_kg",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "aufstellort": {
+          "name": "aufstellort",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "wartungsintervall_monate": {
+          "name": "wartungsintervall_monate",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 12
+        },
+        "letzte_wartung_am": {
+          "name": "letzte_wartung_am",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "naechste_wartung_am": {
+          "name": "naechste_wartung_am",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notiz": {
+          "name": "notiz",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "erstellt_am": {
+          "name": "erstellt_am",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "anlage_kunde_id_kunde_id_fk": {
+          "name": "anlage_kunde_id_kunde_id_fk",
+          "tableFrom": "anlage",
+          "tableTo": "kunde",
+          "columnsFrom": [
+            "kunde_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.benutzer": {
+      "name": "benutzer",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "passwort_hash": {
+          "name": "passwort_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rolle": {
+          "name": "rolle",
+          "type": "rolle",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "aktiv": {
+          "name": "aktiv",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "im_team": {
+          "name": "im_team",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "urlaubstage_pro_jahr": {
+          "name": "urlaubstage_pro_jahr",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 30
+        },
+        "erstellt_am": {
+          "name": "erstellt_am",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "benutzer_email_unique": {
+          "name": "benutzer_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.checkliste_ergebnis": {
+      "name": "checkliste_ergebnis",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "einsatz_id": {
+          "name": "einsatz_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "anlage_id": {
+          "name": "anlage_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "vorlage_id": {
+          "name": "vorlage_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ist_wartung": {
+          "name": "ist_wartung",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "punkte": {
+          "name": "punkte",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "antworten": {
+          "name": "antworten",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "abgeschlossen": {
+          "name": "abgeschlossen",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "ausgefuellt_von": {
+          "name": "ausgefuellt_von",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "geaendert_am": {
+          "name": "geaendert_am",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "abgeschlossen_am": {
+          "name": "abgeschlossen_am",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "checkliste_ergebnis_einsatz_id_einsatz_id_fk": {
+          "name": "checkliste_ergebnis_einsatz_id_einsatz_id_fk",
+          "tableFrom": "checkliste_ergebnis",
+          "tableTo": "einsatz",
+          "columnsFrom": [
+            "einsatz_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "checkliste_ergebnis_anlage_id_anlage_id_fk": {
+          "name": "checkliste_ergebnis_anlage_id_anlage_id_fk",
+          "tableFrom": "checkliste_ergebnis",
+          "tableTo": "anlage",
+          "columnsFrom": [
+            "anlage_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "checkliste_ergebnis_vorlage_id_checkliste_vorlage_id_fk": {
+          "name": "checkliste_ergebnis_vorlage_id_checkliste_vorlage_id_fk",
+          "tableFrom": "checkliste_ergebnis",
+          "tableTo": "checkliste_vorlage",
+          "columnsFrom": [
+            "vorlage_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "checkliste_ergebnis_ausgefuellt_von_benutzer_id_fk": {
+          "name": "checkliste_ergebnis_ausgefuellt_von_benutzer_id_fk",
+          "tableFrom": "checkliste_ergebnis",
+          "tableTo": "benutzer",
+          "columnsFrom": [
+            "ausgefuellt_von"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.checkliste_vorlage": {
+      "name": "checkliste_vorlage",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "anlagentyp": {
+          "name": "anlagentyp",
+          "type": "anlagentyp",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ist_wartung": {
+          "name": "ist_wartung",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "punkte": {
+          "name": "punkte",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "aktiv": {
+          "name": "aktiv",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "erstellt_am": {
+          "name": "erstellt_am",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.datei": {
+      "name": "datei",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "original_name": {
+          "name": "original_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mime_type": {
+          "name": "mime_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "groesse": {
+          "name": "groesse",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "speicher_pfad": {
+          "name": "speicher_pfad",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bereich": {
+          "name": "bereich",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'finanzen'"
+        },
+        "hochgeladen_von": {
+          "name": "hochgeladen_von",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hochgeladen_am": {
+          "name": "hochgeladen_am",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "datei_hochgeladen_von_benutzer_id_fk": {
+          "name": "datei_hochgeladen_von_benutzer_id_fk",
+          "tableFrom": "datei",
+          "tableTo": "benutzer",
+          "columnsFrom": [
+            "hochgeladen_von"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.einsatz": {
+      "name": "einsatz",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "kunde_id": {
+          "name": "kunde_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "anlage_id": {
+          "name": "anlage_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "monteur_id": {
+          "name": "monteur_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "datum": {
+          "name": "datum",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uhrzeit": {
+          "name": "uhrzeit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "art": {
+          "name": "art",
+          "type": "einsatzart",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "beschreibung": {
+          "name": "beschreibung",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "einsatzstatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'geplant'"
+        },
+        "abschluss_bemerkung": {
+          "name": "abschluss_bemerkung",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "abgeschlossen_am": {
+          "name": "abgeschlossen_am",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "erstellt_am": {
+          "name": "erstellt_am",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "einsatz_kunde_id_kunde_id_fk": {
+          "name": "einsatz_kunde_id_kunde_id_fk",
+          "tableFrom": "einsatz",
+          "tableTo": "kunde",
+          "columnsFrom": [
+            "kunde_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "einsatz_anlage_id_anlage_id_fk": {
+          "name": "einsatz_anlage_id_anlage_id_fk",
+          "tableFrom": "einsatz",
+          "tableTo": "anlage",
+          "columnsFrom": [
+            "anlage_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "einsatz_monteur_id_benutzer_id_fk": {
+          "name": "einsatz_monteur_id_benutzer_id_fk",
+          "tableFrom": "einsatz",
+          "tableTo": "benutzer",
+          "columnsFrom": [
+            "monteur_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.einstellungen": {
+      "name": "einstellungen",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "default": 1
+        },
+        "firmenname": {
+          "name": "firmenname",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "firma_telefon": {
+          "name": "firma_telefon",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "buero_email": {
+          "name": "buero_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "erinnerungen_aktiv": {
+          "name": "erinnerungen_aktiv",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "erinnerung_vorlauf_monate": {
+          "name": "erinnerung_vorlauf_monate",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 3
+        },
+        "erinnerung_betreff": {
+          "name": "erinnerung_betreff",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "erinnerung_text": {
+          "name": "erinnerung_text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "wochenbericht_aktiv": {
+          "name": "wochenbericht_aktiv",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "haeufung_grenze": {
+          "name": "haeufung_grenze",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bundesland": {
+          "name": "bundesland",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.fixkosten": {
+      "name": "fixkosten",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "bezeichnung": {
+          "name": "bezeichnung",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kategorie": {
+          "name": "kategorie",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "betrag_cent": {
+          "name": "betrag_cent",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "intervall": {
+          "name": "intervall",
+          "type": "intervall",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "beginn": {
+          "name": "beginn",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ende": {
+          "name": "ende",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notiz": {
+          "name": "notiz",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "erstellt_am": {
+          "name": "erstellt_am",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.foto": {
+      "name": "foto",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "datei_id": {
+          "name": "datei_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "einsatz_id": {
+          "name": "einsatz_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "anlage_id": {
+          "name": "anlage_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kunde_id": {
+          "name": "kunde_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kategorie": {
+          "name": "kategorie",
+          "type": "fotokategorie",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "beschreibung": {
+          "name": "beschreibung",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "aufgenommen_von": {
+          "name": "aufgenommen_von",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "aufgenommen_am": {
+          "name": "aufgenommen_am",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "foto_datei_id_datei_id_fk": {
+          "name": "foto_datei_id_datei_id_fk",
+          "tableFrom": "foto",
+          "tableTo": "datei",
+          "columnsFrom": [
+            "datei_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "foto_einsatz_id_einsatz_id_fk": {
+          "name": "foto_einsatz_id_einsatz_id_fk",
+          "tableFrom": "foto",
+          "tableTo": "einsatz",
+          "columnsFrom": [
+            "einsatz_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "foto_anlage_id_anlage_id_fk": {
+          "name": "foto_anlage_id_anlage_id_fk",
+          "tableFrom": "foto",
+          "tableTo": "anlage",
+          "columnsFrom": [
+            "anlage_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "foto_kunde_id_kunde_id_fk": {
+          "name": "foto_kunde_id_kunde_id_fk",
+          "tableFrom": "foto",
+          "tableTo": "kunde",
+          "columnsFrom": [
+            "kunde_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "foto_aufgenommen_von_benutzer_id_fk": {
+          "name": "foto_aufgenommen_von_benutzer_id_fk",
+          "tableFrom": "foto",
+          "tableTo": "benutzer",
+          "columnsFrom": [
+            "aufgenommen_von"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.kunde": {
+      "name": "kunde",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ansprechpartner": {
+          "name": "ansprechpartner",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "strasse": {
+          "name": "strasse",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "plz": {
+          "name": "plz",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ort": {
+          "name": "ort",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "telefon": {
+          "name": "telefon",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hinweise": {
+          "name": "hinweise",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "erinnerungen": {
+          "name": "erinnerungen",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "taifun_kundennr": {
+          "name": "taifun_kundennr",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "erstellt_am": {
+          "name": "erstellt_am",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.mail_protokoll": {
+      "name": "mail_protokoll",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "an": {
+          "name": "an",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "betreff": {
+          "name": "betreff",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "text": {
+          "name": "text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "anhang": {
+          "name": "anhang",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "mailstatus",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fehler": {
+          "name": "fehler",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "erstellt_am": {
+          "name": "erstellt_am",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.personalkosten": {
+      "name": "personalkosten",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "mitarbeiter": {
+          "name": "mitarbeiter",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "funktion": {
+          "name": "funktion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "brutto_cent": {
+          "name": "brutto_cent",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "arbeitgeberanteil_cent": {
+          "name": "arbeitgeberanteil_cent",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "gueltig_ab": {
+          "name": "gueltig_ab",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gueltig_bis": {
+          "name": "gueltig_bis",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notiz": {
+          "name": "notiz",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "erstellt_am": {
+          "name": "erstellt_am",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.rechnung": {
+      "name": "rechnung",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "lieferant": {
+          "name": "lieferant",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rechnungsnummer": {
+          "name": "rechnungsnummer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rechnungsdatum": {
+          "name": "rechnungsdatum",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "faellig_am": {
+          "name": "faellig_am",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "brutto_cent": {
+          "name": "brutto_cent",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mwst_satz": {
+          "name": "mwst_satz",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 19
+        },
+        "kategorie": {
+          "name": "kategorie",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bezahlt_am": {
+          "name": "bezahlt_am",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notiz": {
+          "name": "notiz",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "datei_id": {
+          "name": "datei_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "erstellt_von": {
+          "name": "erstellt_von",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "erstellt_am": {
+          "name": "erstellt_am",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "rechnung_datei_id_datei_id_fk": {
+          "name": "rechnung_datei_id_datei_id_fk",
+          "tableFrom": "rechnung",
+          "tableTo": "datei",
+          "columnsFrom": [
+            "datei_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "rechnung_erstellt_von_benutzer_id_fk": {
+          "name": "rechnung_erstellt_von_benutzer_id_fk",
+          "tableFrom": "rechnung",
+          "tableTo": "benutzer",
+          "columnsFrom": [
+            "erstellt_von"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.urlaubskonto": {
+      "name": "urlaubskonto",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "benutzer_id": {
+          "name": "benutzer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jahr": {
+          "name": "jahr",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "anspruch_tage": {
+          "name": "anspruch_tage",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uebertrag_halbe_tage": {
+          "name": "uebertrag_halbe_tage",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "urlaubskonto_benutzer_id_benutzer_id_fk": {
+          "name": "urlaubskonto_benutzer_id_benutzer_id_fk",
+          "tableFrom": "urlaubskonto",
+          "tableTo": "benutzer",
+          "columnsFrom": [
+            "benutzer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "urlaubskonto_einmalig": {
+          "name": "urlaubskonto_einmalig",
+          "nullsNotDistinct": false,
+          "columns": [
+            "benutzer_id",
+            "jahr"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.wartung_erinnerung": {
+      "name": "wartung_erinnerung",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "anlage_id": {
+          "name": "anlage_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "faellig_am": {
+          "name": "faellig_am",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "an_kunde": {
+          "name": "an_kunde",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gesendet_am": {
+          "name": "gesendet_am",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "wartung_erinnerung_anlage_id_anlage_id_fk": {
+          "name": "wartung_erinnerung_anlage_id_anlage_id_fk",
+          "tableFrom": "wartung_erinnerung",
+          "tableTo": "anlage",
+          "columnsFrom": [
+            "anlage_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "wartung_erinnerung_einmalig": {
+          "name": "wartung_erinnerung_einmalig",
+          "nullsNotDistinct": false,
+          "columns": [
+            "anlage_id",
+            "faellig_am"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.abwesenheitsart": {
+      "name": "abwesenheitsart",
+      "schema": "public",
+      "values": [
+        "urlaub",
+        "krank",
+        "berufsschule",
+        "sonstiges"
+      ]
+    },
+    "public.abwesenheitsstatus": {
+      "name": "abwesenheitsstatus",
+      "schema": "public",
+      "values": [
+        "beantragt",
+        "genehmigt",
+        "abgelehnt"
+      ]
+    },
+    "public.anlagentyp": {
+      "name": "anlagentyp",
+      "schema": "public",
+      "values": [
+        "gas",
+        "oel",
+        "waermepumpe",
+        "klima",
+        "sonstige"
+      ]
+    },
+    "public.einsatzart": {
+      "name": "einsatzart",
+      "schema": "public",
+      "values": [
+        "wartung",
+        "stoerung",
+        "montage",
+        "sonstiges"
+      ]
+    },
+    "public.einsatzstatus": {
+      "name": "einsatzstatus",
+      "schema": "public",
+      "values": [
+        "geplant",
+        "in_arbeit",
+        "abgeschlossen"
+      ]
+    },
+    "public.fotokategorie": {
+      "name": "fotokategorie",
+      "schema": "public",
+      "values": [
+        "typenschild",
+        "vorher",
+        "nachher",
+        "messwert",
+        "schaden",
+        "sonstiges"
+      ]
+    },
+    "public.intervall": {
+      "name": "intervall",
+      "schema": "public",
+      "values": [
+        "monatlich",
+        "vierteljaehrlich",
+        "halbjaehrlich",
+        "jaehrlich"
+      ]
+    },
+    "public.mailstatus": {
+      "name": "mailstatus",
+      "schema": "public",
+      "values": [
+        "gesendet",
+        "testmodus",
+        "fehler"
+      ]
+    },
+    "public.rolle": {
+      "name": "rolle",
+      "schema": "public",
+      "values": [
+        "inhaber",
+        "buero",
+        "monteur"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

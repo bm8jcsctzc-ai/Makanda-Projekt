@@ -12,6 +12,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     { href: "/", titel: "Heute" },
     ...(planer ? [{ href: "/einsaetze", titel: "Einsätze" }, { href: "/wartung", titel: "Wartung" }] : []),
     { href: "/kunden", titel: "Kunden" },
+    { href: "/urlaub", titel: "Urlaub" },
     ...(DARF_FINANZEN.includes(b.rolle) ? [{ href: "/finanzen", titel: "Finanzen" }] : []),
     ...(planer ? [{ href: "/einstellungen", titel: "Einstellungen" }] : []),
   ];

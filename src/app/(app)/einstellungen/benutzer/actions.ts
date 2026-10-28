@@ -53,7 +53,7 @@ export async function benutzerAendern(id: string, _: FormularZustand, form: Form
   const db = await getDb();
   await db
     .update(benutzer)
-    .set({ rolle: r, aktiv, ...(passwort ? { passwortHash: await hashePasswort(passwort) } : {}) })
+    .set({ rolle: r, aktiv, imTeam: form.get("imTeam") === "on", ...(passwort ? { passwortHash: await hashePasswort(passwort) } : {}) })
     .where(eq(benutzer.id, id));
   revalidatePath("/einstellungen/benutzer");
   return { erfolg: passwort ? "Gespeichert, neues Passwort gesetzt." : "Gespeichert." };

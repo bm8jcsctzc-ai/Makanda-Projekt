@@ -6,6 +6,7 @@ import { getDb } from "@/db";
 import { einstellungen } from "@/db/schema";
 import { optionalerText, text, type FormularZustand } from "@/lib/aktionen";
 import { benoetigeBenutzer } from "@/lib/auth";
+import { BUNDESLAENDER } from "@/lib/feiertage";
 import { DARF_PLANEN } from "@/lib/technik";
 
 export async function speichereEinstellungen(_: FormularZustand, form: FormData): Promise<FormularZustand> {
@@ -34,6 +35,7 @@ export async function speichereEinstellungen(_: FormularZustand, form: FormData)
       erinnerungText: mailText,
       wochenberichtAktiv: form.get("wochenberichtAktiv") === "on",
       haeufungGrenze: grenze,
+      bundesland: text(form, "bundesland") in BUNDESLAENDER ? text(form, "bundesland") : null,
     })
     .where(eq(einstellungen.id, 1));
   revalidatePath("/", "layout");

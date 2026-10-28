@@ -22,6 +22,9 @@ export const benutzer = pgTable("benutzer", {
   passwortHash: text("passwort_hash").notNull(),
   rolle: rolle("rolle").notNull(),
   aktiv: boolean("aktiv").notNull().default(true),
+  // Erscheint im Urlaubsplaner (Mitarbeiter des Betriebs; z. B. nicht für reine Test- oder Büro-Zugänge)
+  imTeam: boolean("im_team").notNull().default(true),
+  urlaubstageProJahr: integer("urlaubstage_pro_jahr").notNull().default(30),
   erstelltAm: timestamp("erstellt_am", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -247,6 +250,8 @@ export const einstellungen = pgTable("einstellungen", {
   wochenberichtAktiv: boolean("wochenbericht_aktiv").notNull().default(true),
   // Ab so vielen Wartungen pro Monat wird gewarnt (zusätzlich zur automatischen Erkennung)
   haeufungGrenze: integer("haeufung_grenze"),
+  // Kürzel des Bundeslands für die Feiertage, z. B. "NI"
+  bundesland: text("bundesland"),
 });
 
 export const wartungErinnerung = pgTable(
@@ -277,3 +282,44 @@ export const mailProtokoll = pgTable("mail_protokoll", {
 
 export type Einstellungen = typeof einstellungen.$inferSelect;
 export type MailProtokoll = typeof mailProtokoll.$inferSelect;
+
+// ---------- Urlaubsplaner ----------
+
+export const abwesenheitsart = pgEnum("abwesenheitsart", ["urlaub", "krank", "berufsschule", "sonstiges"]);
+export const abwesenheitsstatus = pgEnum("abwesenheitsstatus", ["beantragt", "genehmigt", "abgelehnt"]);
+
+export const abwesenheit = pgTable("abwesenheit", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  benutzerId: uuid("benutzer_id").notNull().references(() => benutzer.id, { onDelete: "cascade" }),
+  art: abwesenheitsart("art").notNull(),
+  von: date("von").notNull(),
+  bis: date("bis").notNull(),
+  // Nur bei eintägigen Abwesenheiten: halber Tag
+  halbtags: boolean("halbtags").notNull().default(false),
+  status: abwesenheitsstatus("status").notNull(),
+  bemerkung: text("bemerkung"),
+  entscheidungKommentar: text("entscheidung_kommentar"),
+  entschiedenVon: uuid("entschieden_von").references(() => benutzer.id),
+  entschiedenAm: timestamp("entschieden_am", { withTimezone: true }),
+  eingetragenVon: uuid("eingetragen_von").references(() => benutzer.id),
+  erstelltAm: timestamp("erstellt_am", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Urlaubsanspruch pro Mitarbeiter und Jahr; fehlt der Eintrag, gilt der Standard aus dem Benutzer */
+export const urlaubskonto = pgTable(
+  "urlaubskonto",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    benutzerId: uuid("benutzer_id").notNull().references(() => benutzer.id, { onDelete: "cascade" }),
+    jahr: integer("jahr").notNull(),
+    anspruchTage: integer("anspruch_tage").notNull(),
+    // Resturlaub aus dem Vorjahr in halben Tagen (5 = 2,5 Tage)
+    uebertragHalbeTage: integer("uebertrag_halbe_tage").notNull().default(0),
+  },
+  (t) => [unique("urlaubskonto_einmalig").on(t.benutzerId, t.jahr)],
+);
+
+export type Abwesenheit = typeof abwesenheit.$inferSelect;
+export type Abwesenheitsart = (typeof abwesenheitsart.enumValues)[number];
+export type Abwesenheitsstatus = (typeof abwesenheitsstatus.enumValues)[number];
+export type Urlaubskonto = typeof urlaubskonto.$inferSelect;

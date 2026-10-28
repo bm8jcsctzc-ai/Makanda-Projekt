@@ -16,15 +16,19 @@ type Props = {
   kunden: Auswahl[];
   anlagen: (Auswahl & { kundeId: string })[];
   mitarbeiter: Auswahl[];
+  abwesenheiten: { benutzerId: string; von: string; bis: string; status: string }[];
   heute: string;
   zurueck: string;
 };
 
-export function EinsatzFormular({ aktion, einsatz: e, vorauswahl, kunden, anlagen, mitarbeiter, heute, zurueck }: Props) {
+export function EinsatzFormular({ aktion, einsatz: e, vorauswahl, kunden, anlagen, mitarbeiter, abwesenheiten, heute, zurueck }: Props) {
   const { zustand, laeuft, formularProps } = useFormular(aktion);
   const [kundeId, setKundeId] = useState(e?.kundeId ?? vorauswahl?.kundeId ?? "");
   const [anlageId, setAnlageId] = useState(e?.anlageId ?? vorauswahl?.anlageId ?? "");
   const anlagenDesKunden = anlagen.filter((a) => a.kundeId === kundeId);
+  const [monteurId, setMonteurId] = useState(e?.monteurId ?? "");
+  const [datum, setDatum] = useState(e?.datum ?? vorauswahl?.datum ?? heute);
+  const abwesend = abwesenheiten.find((a) => a.benutzerId === monteurId && a.von <= datum && a.bis >= datum);
 
   return (
     <form {...formularProps} className="karte grid gap-4 sm:grid-cols-2">
@@ -61,7 +65,7 @@ export function EinsatzFormular({ aktion, einsatz: e, vorauswahl, kunden, anlage
       </div>
       <div>
         <label className="feld-label" htmlFor="monteurId">Monteur</label>
-        <select className="eingabe" id="monteurId" name="monteurId" defaultValue={e?.monteurId ?? ""}>
+        <select className="eingabe" id="monteurId" name="monteurId" value={monteurId} onChange={(ev) => setMonteurId(ev.target.value)}>
           <option value="">– noch offen –</option>
           {mitarbeiter.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
         </select>
@@ -69,13 +73,19 @@ export function EinsatzFormular({ aktion, einsatz: e, vorauswahl, kunden, anlage
       <div className="grid grid-cols-2 gap-3 sm:col-span-2">
         <div>
           <label className="feld-label" htmlFor="datum">Datum *</label>
-          <input className="eingabe" id="datum" name="datum" type="date" defaultValue={e?.datum ?? vorauswahl?.datum ?? heute} required />
+          <input className="eingabe" id="datum" name="datum" type="date" value={datum} onChange={(ev) => setDatum(ev.target.value)} required />
         </div>
         <div>
           <label className="feld-label" htmlFor="uhrzeit">Uhrzeit</label>
           <input className="eingabe" id="uhrzeit" name="uhrzeit" type="time" defaultValue={e?.uhrzeit ?? ""} />
         </div>
       </div>
+      {abwesend && (
+        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 sm:col-span-2">
+          ⚠ {mitarbeiter.find((m) => m.id === monteurId)?.name} ist an diesem Tag abwesend
+          {abwesend.status === "beantragt" ? " (Urlaub beantragt)" : ""}.
+        </p>
+      )}
       <div className="sm:col-span-2">
         <label className="feld-label" htmlFor="beschreibung">Was ist zu tun?</label>
         <textarea className="eingabe" id="beschreibung" name="beschreibung" rows={3} placeholder="z. B. Jahreswartung, Kunde meldet Geräusche an der Pumpe" defaultValue={e?.beschreibung ?? ""} />
