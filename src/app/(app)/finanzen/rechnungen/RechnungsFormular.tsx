@@ -1,5 +1,6 @@
 "use client";
 
+import { verkleinern } from "@/lib/bild";
 import { useFormular } from "@/lib/useFormular";
 import Link from "next/link";
 import type { Rechnung } from "@/db/schema";
@@ -16,7 +17,13 @@ type Props = {
 };
 
 export function RechnungsFormular({ aktion, rechnung: r, dateiName, lieferanten, heute }: Props) {
-  const { zustand, laeuft, formularProps } = useFormular(aktion);
+  const { zustand, laeuft, formularProps } = useFormular(aktion, {
+    // Handyfotos von Rechnungen verkleinern, damit sie unter der Upload-Grenze bleiben
+    vorbereiten: async (daten) => {
+      const datei = daten.get("datei");
+      if (datei instanceof File && datei.size > 0) daten.set("datei", await verkleinern(datei));
+    },
+  });
   return (
     <form {...formularProps} className="karte grid gap-4 sm:grid-cols-2">
       {zustand?.fehler && <p className="fehler-box sm:col-span-2">{zustand.fehler}</p>}

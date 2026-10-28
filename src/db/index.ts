@@ -18,7 +18,10 @@ async function verbinden(): Promise<Db> {
     const { drizzle } = await import("drizzle-orm/postgres-js");
     const { migrate } = await import("drizzle-orm/postgres-js/migrator");
     const postgres = (await import("postgres")).default;
-    const client = postgres(process.env.DATABASE_URL, { prepare: false });
+    const url = process.env.DATABASE_URL;
+    const lokal = /@(localhost|127\.0\.0\.1)[:/]/.test(url);
+    // prepare: false ist für den Supabase-Pooler (Transaktionsmodus) nötig; Verbindungen zu Supabase immer verschlüsselt
+    const client = postgres(url, { prepare: false, ssl: lokal ? false : "require", max: Number(process.env.DATABASE_POOL_MAX) || 5 });
     const db = drizzle(client, { schema });
     await migrate(db, { migrationsFolder });
     await startdatenAnlegen(db);

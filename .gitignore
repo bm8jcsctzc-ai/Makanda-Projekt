@@ -42,3 +42,4 @@ next-env.d.ts
 
 # lokale Datenbank und hochgeladene Dateien
 /data/
+!.env.example

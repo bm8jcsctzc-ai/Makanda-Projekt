@@ -252,6 +252,8 @@ export const einstellungen = pgTable("einstellungen", {
   haeufungGrenze: integer("haeufung_grenze"),
   // Kürzel des Bundeslands für die Feiertage, z. B. "NI"
   bundesland: text("bundesland"),
+  // Geheimer Schlüssel für die Anmelde-Cookies; wird beim ersten Start erzeugt, falls SESSION_SECRET fehlt
+  sitzungsSchluessel: text("sitzungs_schluessel"),
 });
 
 export const wartungErinnerung = pgTable(

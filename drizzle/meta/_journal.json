@@ -29,6 +29,13 @@
       "when": 1793202313453,
       "tag": "0003_urlaub",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793205804550,
+      "tag": "0004_sitzung",
+      "breakpoints": true
     }
   ]
 }

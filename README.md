@@ -70,16 +70,17 @@ Dann im Browser <http://localhost:3000> öffnen. Beim allerersten Start erschein
 
 Es ist **kein Datenbank-Konto nötig**. Ohne weitere Einstellungen nutzt die App eine eingebaute Datenbank im Ordner `data/`, dort liegen auch die hochgeladenen Dateien. Der Ordner wird nicht ins Git-Repository übernommen. Zum Zurücksetzen den Ordner `data/` löschen.
 
-## Für den Live-Betrieb (später)
+## Online stellen
+
+Schritt-für-Schritt-Anleitung: [`docs/ONLINE.md`](docs/ONLINE.md) (Supabase + Vercel, Rechenzentren in Frankfurt).
 
 | Einstellung | Zweck |
 |---|---|
-| `DATABASE_URL` | Verbindung zu einer Postgres-Datenbank, z. B. Supabase. Die Tabellen werden beim Start automatisch angelegt. |
-| `SESSION_SECRET` | langer Zufallswert zum Absichern der Anmeldung |
+| `DATABASE_URL` | Verbindung zur Postgres-Datenbank (Supabase, „Transaction pooler“). Die Tabellen werden beim Start automatisch angelegt. |
+| `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | Speicher für Fotos und Rechnungen (privater Bucket in Supabase Storage). Ohne: Ordner `data/uploads`. |
+| `SESSION_SECRET` | optional; sonst erzeugt die App den Schlüssel für die Anmeldung selbst und speichert ihn in der Datenbank |
 | `RESEND_API_KEY`, `MAIL_ABSENDER` | echter E-Mail-Versand über [Resend](https://resend.com), z. B. `MAIL_ABSENDER="Mustermann Haustechnik <service@firma.de>"`. Ohne diese Werte läuft der Testmodus. |
 | `CRON_SECRET` | Zufallswert, schützt die Adressen `/api/cron/taeglich` und `/api/cron/woechentlich`. Auf Vercel ruft der Zeitplaner sie laut `vercel.json` automatisch auf. |
-
-Die Ablage der hochgeladenen Dateien (`src/lib/dateien.ts`) wird für den Live-Betrieb noch auf einen Cloud-Speicher umgestellt.
 
 ## Für Entwickler
 

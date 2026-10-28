@@ -10,7 +10,10 @@ type Aktion = (zustand: FormularZustand, form: FormData) => Promise<FormularZust
  * (Mit <form action={…}> leert React 19 nach jedem Absenden alle Felder – auch wenn ein Fehler kommt.)
  * Nur bei Erfolg wird das Formular geleert, wenn `leerenBeiErfolg` gesetzt ist.
  */
-export function useFormular(aktion: Aktion, { leerenBeiErfolg = false } = {}) {
+export function useFormular(
+  aktion: Aktion,
+  { leerenBeiErfolg = false, vorbereiten }: { leerenBeiErfolg?: boolean; vorbereiten?: (daten: FormData) => Promise<void> } = {},
+) {
   const [zustand, senden, laeuft] = useActionState(aktion, undefined);
   const [, startTransition] = useTransition();
   const formular = useRef<HTMLFormElement>(null);
@@ -22,7 +25,11 @@ export function useFormular(aktion: Aktion, { leerenBeiErfolg = false } = {}) {
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const daten = new FormData(e.currentTarget);
-    startTransition(() => senden(daten));
+    startTransition(async () => {
+      if (vorbereiten) await vorbereiten(daten);
+      // Nach einem await gehört das Absenden in eine eigene Transition (React 19)
+      startTransition(() => senden(daten));
+    });
   }
 
   return { zustand, laeuft, formularProps: { ref: formular, onSubmit } };

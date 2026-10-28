@@ -1,29 +1,36 @@
 import { randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import path from "node:path";
 import bcrypt from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { jwtVerify, SignJWT } from "jose";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
-import { benutzer, type Benutzer, type Rolle } from "@/db/schema";
+import { benutzer, einstellungen, type Benutzer, type Rolle } from "@/db/schema";
 
 const COOKIE = "sitzung";
 const LAUFZEIT_TAGE = 30;
 
-// SESSION_SECRET setzen wir im Live-Betrieb. Lokal wird ein Schlüssel erzeugt und in ./data abgelegt.
-function geheimnis(): Uint8Array {
-  let wert = process.env.SESSION_SECRET;
-  if (!wert) {
-    const datei = path.join(process.cwd(), "data", ".sitzung-schluessel");
-    if (!existsSync(datei)) {
-      mkdirSync(path.dirname(datei), { recursive: true });
-      writeFileSync(datei, randomBytes(32).toString("hex"), { mode: 0o600 });
-    }
-    wert = readFileSync(datei, "utf8");
-  }
-  return new TextEncoder().encode(wert);
+// Schlüssel für die Anmelde-Cookies: aus SESSION_SECRET, sonst einmalig erzeugt und in der Datenbank gespeichert.
+// So muss beim Online-Stellen niemand einen Schlüssel von Hand eintragen.
+let schluessel: Promise<Uint8Array> | undefined;
+
+async function ladeSchluessel(): Promise<Uint8Array> {
+  if (process.env.SESSION_SECRET) return new TextEncoder().encode(process.env.SESSION_SECRET);
+  const db = await getDb();
+  await db
+    .update(einstellungen)
+    .set({ sitzungsSchluessel: randomBytes(32).toString("hex") })
+    .where(and(eq(einstellungen.id, 1), isNull(einstellungen.sitzungsSchluessel)));
+  const [e] = await db.select({ s: einstellungen.sitzungsSchluessel }).from(einstellungen).where(eq(einstellungen.id, 1));
+  return new TextEncoder().encode(e.s!);
+}
+
+function geheimnis(): Promise<Uint8Array> {
+  schluessel ??= ladeSchluessel().catch((fehler) => {
+    schluessel = undefined;
+    throw fehler;
+  });
+  return schluessel;
 }
 
 export function hashePasswort(passwort: string) {
@@ -40,7 +47,7 @@ export async function starteSitzung(benutzerId: string) {
     .setSubject(benutzerId)
     .setIssuedAt()
     .setExpirationTime(`${LAUFZEIT_TAGE}d`)
-    .sign(geheimnis());
+    .sign(await geheimnis());
   (await cookies()).set(COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -57,9 +64,10 @@ export async function beendeSitzung() {
 export async function aktuellerBenutzer(): Promise<Benutzer | null> {
   const token = (await cookies()).get(COOKIE)?.value;
   if (!token) return null;
+  const schluessel = await geheimnis();
   let benutzerId: string | undefined;
   try {
-    const { payload } = await jwtVerify(token, geheimnis());
+    const { payload } = await jwtVerify(token, schluessel);
     benutzerId = payload.sub;
   } catch {
     return null;

@@ -1,0 +1,1 @@
+ALTER TABLE "einstellungen" ADD COLUMN "sitzungs_schluessel" text;
