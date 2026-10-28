@@ -1,19 +1,21 @@
-import { and, gt, lt, ne } from "drizzle-orm";
+"use client";
+
 import Link from "next/link";
 import { EinsatzListe } from "@/components/EinsatzListe";
-import { einsatz } from "@/db/schema";
-import { benoetigeBenutzer } from "@/lib/auth";
-import { ladeEinsaetze, nachDatum, tagesTitel } from "@/lib/einsaetze";
-import { ladeEinstellungen } from "@/lib/einstellungen";
+import { Laden } from "@/components/Laden";
+import type { Einstellungen } from "@/db/schema";
+import { api } from "@/lib/api";
+import { useAbfrage } from "@/lib/daten";
 import { formatMonat, heute } from "@/lib/format";
-import { ARTEN } from "@/lib/urlaub";
-import { ladeAbwesenheiten } from "@/lib/urlaub-daten";
-import { ladeWartungen } from "@/lib/wartung-daten";
-import { monatsLast, naechsteMonate, wartungsStatus } from "@/lib/wartungsplan";
+import { useSitzung } from "@/lib/sitzung";
 import { DARF_PLANEN, plusTage } from "@/lib/technik";
+import type { AbwesenheitImKalender, EinsatzZeile, WartungsZeile } from "@/lib/typen";
+import { ARTEN } from "@/lib/urlaub";
+import { monatsLast, naechsteMonate, wartungsStatus } from "@/lib/wartungsplan";
+import { tagesTitel, nachDatum } from "@/lib/einsaetze";
 
 async function wartungsHinweis(stichtag: string) {
-  const [e, zeilen] = await Promise.all([ladeEinstellungen(), ladeWartungen(stichtag)]);
+  const [e, zeilen] = await Promise.all([api<Einstellungen>("einstellungen"), api<WartungsZeile[]>("wartungen")]);
   const status = zeilen.map((z) => wartungsStatus(z.a.naechsteWartungAm, stichtag, e.erinnerungVorlaufMonate));
   const last = monatsLast(
     zeilen.map((z) => z.a.naechsteWartungAm).filter((d): d is string => !!d),
@@ -27,22 +29,30 @@ async function wartungsHinweis(stichtag: string) {
   };
 }
 
-export default async function Heute() {
-  const b = await benoetigeBenutzer();
-  const planer = DARF_PLANEN.includes(b.rolle);
+export default function Heute() {
+  const { profil: b } = useSitzung();
+  const planer = !!b && DARF_PLANEN.includes(b.rolle);
   const stichtag = heute();
-  const inEinerWoche = plusTage(stichtag, 8);
-
-  const [meineHeute, meineBald, meineLiegengeblieben, alleHeute] = await Promise.all([
-    ladeEinsaetze({ von: stichtag, bis: stichtag, monteurId: b.id }),
-    ladeEinsaetze({ monteurId: b.id, extra: and(gt(einsatz.datum, stichtag), lt(einsatz.datum, inEinerWoche)) }),
-    // Vergangene Einsätze, die noch nicht abgeschlossen sind
-    ladeEinsaetze({ monteurId: b.id, extra: and(lt(einsatz.datum, stichtag), ne(einsatz.status, "abgeschlossen")) }),
-    planer ? ladeEinsaetze({ von: stichtag, bis: stichtag }) : Promise.resolve([]),
-  ]);
+  const { daten, fehler } = useAbfrage(
+    async () => {
+      const einsaetze = (args: Record<string, unknown>) => api<EinsatzZeile[]>("einsaetze", args);
+      const [meineHeute, meineBald, meineLiegengeblieben, alleHeute, wartung, abwesendHeute] = await Promise.all([
+        einsaetze({ p_von: stichtag, p_bis: stichtag, p_monteur: b!.id }),
+        einsaetze({ p_von: plusTage(stichtag, 1), p_bis: plusTage(stichtag, 7), p_monteur: b!.id }),
+        // Vergangene Einsätze, die noch nicht abgeschlossen sind
+        einsaetze({ p_bis: plusTage(stichtag, -1), p_monteur: b!.id, p_nur_offen: true }),
+        planer ? einsaetze({ p_von: stichtag, p_bis: stichtag }) : Promise.resolve([]),
+        planer ? wartungsHinweis(stichtag) : Promise.resolve(null),
+        planer ? api<AbwesenheitImKalender[]>("abwesenheiten", { p_von: stichtag, p_bis: stichtag }) : Promise.resolve([]),
+      ]);
+      return { meineHeute, meineBald, meineLiegengeblieben, alleHeute, wartung, abwesendHeute };
+    },
+    [b?.id],
+    !!b,
+  );
+  if (!b || !daten) return <Laden fehler={fehler} />;
+  const { meineHeute, meineBald, meineLiegengeblieben, alleHeute, wartung, abwesendHeute } = daten;
   const hatEigene = meineHeute.length + meineBald.length + meineLiegengeblieben.length > 0;
-  const wartung = planer ? await wartungsHinweis(stichtag) : null;
-  const abwesendHeute = planer ? await ladeAbwesenheiten(stichtag, stichtag) : [];
 
   return (
     <div className="space-y-6">
@@ -84,12 +94,12 @@ export default async function Heute() {
       {abwesendHeute.length > 0 && (
         <p className="rounded-xl border border-slate-200 bg-white p-3 text-sm">
           <span className="font-medium">Heute abwesend:</span>{" "}
-          {abwesendHeute.map((a) => `${a.name} (${ARTEN[a.art].name}${a.status === "beantragt" ? ", beantragt" : ""})`).join(", ")}
+          {abwesendHeute.map((a) => `${a.name} (${a.art ? ARTEN[a.art].name : "abwesend"}${a.status === "beantragt" ? ", beantragt" : ""})`).join(", ")}
         </p>
       )}
 
       {wartung && (wartung.ueberfaellig > 0 || wartung.baldOhneTermin > 0 || wartung.haeufungen.length > 0) && (
-        <Link href="/wartung" className="block rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 hover:bg-amber-100">
+        <Link href="/wartung/" className="block rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 hover:bg-amber-100">
           <p className="font-semibold">Wartungsplan</p>
           <p className="mt-1">
             {[
@@ -108,13 +118,13 @@ export default async function Heute() {
         <section>
           <div className="mb-2 flex items-center justify-between gap-2">
             <h2 className="font-semibold">Alle Einsätze heute</h2>
-            <Link className="btn" href="/einsaetze/neu">+ Einsatz planen</Link>
+            <Link className="btn" href="/einsaetze/neu/">+ Einsatz planen</Link>
           </div>
           {alleHeute.length ? (
             <EinsatzListe zeilen={alleHeute} />
           ) : (
             <p className="karte text-sm text-slate-600">
-              Für heute ist nichts geplant. <Link className="text-marke underline" href="/einsaetze">Alle Einsätze ansehen</Link>
+              Für heute ist nichts geplant. <Link className="text-marke underline" href="/einsaetze/">Alle Einsätze ansehen</Link>
             </p>
           )}
         </section>

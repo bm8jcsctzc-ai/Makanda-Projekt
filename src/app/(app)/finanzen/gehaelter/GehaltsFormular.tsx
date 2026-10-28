@@ -52,7 +52,7 @@ export function GehaltsFormular({ aktion, eintrag: p, mitarbeiterVorschlaege, he
       </div>
       <div className="flex gap-2 sm:col-span-2">
         <button className="btn-primaer" disabled={laeuft}>{laeuft ? "Speichern …" : "Speichern"}</button>
-        <Link className="btn" href="/finanzen/gehaelter">Abbrechen</Link>
+        <Link className="btn" href="/finanzen/gehaelter/">Abbrechen</Link>
       </div>
     </form>
   );

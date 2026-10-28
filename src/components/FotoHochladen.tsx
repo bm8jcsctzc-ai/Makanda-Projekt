@@ -1,15 +1,21 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import { fotoHochladen } from "@/app/(app)/fotos/actions";
+import { api, fehlertext } from "@/lib/api";
 import { verkleinern } from "@/lib/bild";
+import { dateiHochladen } from "@/lib/dateien";
 import { FOTOKATEGORIEN } from "@/lib/technik";
 
-type Props = { kundeId: string; einsatzId?: string; anlageId?: string | null; standardKategorie?: string };
+type Props = {
+  kundeId: string;
+  einsatzId?: string;
+  anlageId?: string | null;
+  standardKategorie?: string;
+  /** Nach dem Hochladen, z. B. Galerie neu laden */
+  fertig: () => void;
+};
 
-export function FotoHochladen({ kundeId, einsatzId, anlageId, standardKategorie = "vorher" }: Props) {
-  const router = useRouter();
+export function FotoHochladen({ kundeId, einsatzId, anlageId, standardKategorie = "vorher", fertig }: Props) {
   const eingabe = useRef<HTMLInputElement>(null);
   const [kategorie, setKategorie] = useState(standardKategorie);
   const [beschreibung, setBeschreibung] = useState("");
@@ -22,28 +28,25 @@ export function FotoHochladen({ kundeId, einsatzId, anlageId, standardKategorie 
     const liste = [...dateien];
     for (const [i, original] of liste.entries()) {
       setFortschritt(`Foto ${i + 1} von ${liste.length} wird hochgeladen …`);
-      const daten = new FormData();
-      daten.set("datei", await verkleinern(original));
-      daten.set("kundeId", kundeId);
-      if (einsatzId) daten.set("einsatzId", einsatzId);
-      if (anlageId) daten.set("anlageId", anlageId);
-      daten.set("kategorie", kategorie);
-      if (beschreibung) daten.set("beschreibung", beschreibung);
       try {
-        const antwort = await fotoHochladen(daten);
-        if (antwort?.fehler) {
-          setFehler(antwort.fehler);
-          break;
-        }
-      } catch {
-        setFehler("Hochladen fehlgeschlagen. Bitte Internetverbindung prüfen und erneut versuchen.");
+        const dateiId = await dateiHochladen(await verkleinern(original), "technik");
+        await api("foto_speichern", {
+          p_datei_id: dateiId,
+          p_kunde_id: kundeId,
+          p_einsatz_id: einsatzId ?? null,
+          p_anlage_id: anlageId ?? null,
+          p_kategorie: kategorie,
+          p_beschreibung: beschreibung || null,
+        });
+      } catch (e) {
+        setFehler(fehlertext(e));
         break;
       }
     }
     setFortschritt(null);
     setBeschreibung("");
     if (eingabe.current) eingabe.current.value = "";
-    router.refresh();
+    fertig();
   }
 
   return (

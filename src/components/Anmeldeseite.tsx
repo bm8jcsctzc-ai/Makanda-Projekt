@@ -11,3 +11,9 @@ export function Anmeldeseite({ titel, children }: { titel: string; children: Rea
     </main>
   );
 }
+
+export function Meldung({ fehler, erfolg }: { fehler?: string; erfolg?: string }) {
+  if (fehler) return <p className="fehler-box">{fehler}</p>;
+  if (erfolg) return <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-800">{erfolg}</p>;
+  return null;
+}

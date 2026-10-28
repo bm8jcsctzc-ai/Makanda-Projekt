@@ -1,16 +1,19 @@
+"use client";
+
+import { Laden } from "@/components/Laden";
 import { Seitenkopf } from "@/components/Seitenkopf";
-import { benoetigeBenutzer } from "@/lib/auth";
-import { ladeEinstellungen } from "@/lib/einstellungen";
-import { DARF_PLANEN } from "@/lib/technik";
-import { speichereEinstellungen } from "./actions";
+import type { Einstellungen } from "@/db/schema";
+import { api } from "@/lib/api";
+import { useAbfrage } from "@/lib/daten";
+import { speichereEinstellungen } from "../aktionen";
 import { EinstellungsFormular } from "./EinstellungsFormular";
 
-export default async function WartungsEinstellungen() {
-  await benoetigeBenutzer(DARF_PLANEN);
+export default function WartungsEinstellungen() {
+  const { daten, fehler } = useAbfrage(() => api<Einstellungen>("einstellungen"), []);
   return (
     <>
       <Seitenkopf titel="Betrieb & E-Mails" />
-      <EinstellungsFormular aktion={speichereEinstellungen} werte={await ladeEinstellungen()} />
+      {daten ? <EinstellungsFormular aktion={speichereEinstellungen} werte={daten} /> : <Laden fehler={fehler} />}
     </>
   );
 }

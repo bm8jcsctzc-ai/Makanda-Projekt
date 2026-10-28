@@ -1,11 +1,10 @@
+"use client";
+
 import { Seitenkopf } from "@/components/Seitenkopf";
-import { benoetigeBenutzer } from "@/lib/auth";
-import { DARF_PLANEN } from "@/lib/technik";
-import { speichereVorlage } from "../actions";
+import { speichereVorlage } from "../../aktionen";
 import { VorlagenEditor } from "../VorlagenEditor";
 
-export default async function NeueVorlage() {
-  await benoetigeBenutzer(DARF_PLANEN);
+export default function NeueVorlage() {
   return (
     <>
       <Seitenkopf titel="Neue Checklisten-Vorlage" />

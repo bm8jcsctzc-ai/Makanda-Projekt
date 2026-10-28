@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Abwesenheitsart } from "@/db/schema";
 import type { FormularZustand } from "@/lib/aktionen";
 import type { Bundesland } from "@/lib/feiertage";
@@ -93,15 +93,18 @@ export function AbwesenheitFormular({ aktion, mitarbeiter, ichId, land, heute }:
         <button className="btn-primaer" disabled={laeuft}>
           {mitarbeiter ? "Eintragen" : "Urlaub beantragen"}
         </button>
-        <Link className="btn" href="/urlaub">Abbrechen</Link>
+        <Link className="btn" href="/urlaub/">Abbrechen</Link>
       </div>
     </form>
   );
 }
 
-export function EntscheidungFormular({ genehmigen, ablehnen }: { genehmigen: Aktion; ablehnen: Aktion }) {
+export function EntscheidungFormular({ genehmigen, ablehnen, fertig }: { genehmigen: Aktion; ablehnen: Aktion; fertig: () => void }) {
   const g = useFormular(genehmigen);
   const a = useFormular(ablehnen);
+  useEffect(() => {
+    if (g.zustand?.erfolg || a.zustand?.erfolg) fertig();
+  }, [g.zustand, a.zustand, fertig]);
   return (
     <div className="space-y-3">
       <Meldung zustand={g.zustand ?? a.zustand} />
@@ -120,8 +123,11 @@ export function EntscheidungFormular({ genehmigen, ablehnen }: { genehmigen: Akt
   );
 }
 
-export function KontoFormular({ aktion, anspruch, uebertrag }: { aktion: Aktion; anspruch: number; uebertrag: number }) {
+export function KontoFormular({ aktion, anspruch, uebertrag, fertig }: { aktion: Aktion; anspruch: number; uebertrag: number; fertig: () => void }) {
   const { zustand, laeuft, formularProps } = useFormular(aktion);
+  useEffect(() => {
+    if (zustand?.erfolg) fertig();
+  }, [zustand, fertig]);
   return (
     <form {...formularProps} className="flex flex-wrap items-center gap-2">
       <input className="eingabe w-20" name="anspruch" type="number" min={0} max={60} defaultValue={anspruch} aria-label="Anspruch in Tagen" />

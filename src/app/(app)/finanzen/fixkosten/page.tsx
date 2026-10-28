@@ -1,16 +1,22 @@
-import { asc } from "drizzle-orm";
+"use client";
+
 import Link from "next/link";
+import { Laden } from "@/components/Laden";
 import { Seitenkopf } from "@/components/Seitenkopf";
-import { getDb } from "@/db";
-import { fixkosten } from "@/db/schema";
-import { benoetigeBenutzer, DARF_FINANZEN } from "@/lib/auth";
+import { useAbfrage } from "@/lib/daten";
+import { ladeFinanzen } from "@/lib/finanz-daten";
+import { pfad } from "@/lib/pfade";
+import { DARF_FINANZEN } from "@/lib/rechte";
+import { useBenoetige } from "@/lib/sitzung";
 import { fixkostenProMonat, INTERVALLE } from "@/lib/finanzen";
 import { formatDatum, formatEuro, heute } from "@/lib/format";
 
-export default async function FixkostenListe() {
-  await benoetigeBenutzer(DARF_FINANZEN);
-  const db = await getDb();
-  const alle = await db.select().from(fixkosten).orderBy(asc(fixkosten.kategorie), asc(fixkosten.bezeichnung));
+export default function FixkostenListe() {
+  const b = useBenoetige(DARF_FINANZEN);
+  const { daten, fehler } = useAbfrage(ladeFinanzen, [], !!b);
+  if (!b) return null;
+  if (!daten) return <Laden fehler={fehler} />;
+  const alle = daten.fixkosten;
   const stichtag = heute();
   const aktiv = alle.filter((f) => f.beginn <= stichtag && (!f.ende || f.ende >= stichtag));
   const sonstige = alle.filter((f) => !aktiv.includes(f));
@@ -32,7 +38,7 @@ export default async function FixkostenListe() {
         {liste.map((f) => (
           <tr key={f.id} className="hover:bg-slate-50">
             <td>
-              <Link className="font-medium text-marke hover:underline" href={`/finanzen/fixkosten/${f.id}`}>{f.bezeichnung}</Link>
+              <Link className="font-medium text-marke hover:underline" href={pfad.fixkosten(f.id)}>{f.bezeichnung}</Link>
             </td>
             <td className="hidden md:table-cell">{f.kategorie}</td>
             <td className="betrag">{formatEuro(f.betragCent)}</td>
@@ -55,7 +61,7 @@ export default async function FixkostenListe() {
         untertitel={
           <>Aktuell <strong>{formatEuro(proMonat)}</strong> pro Monat · {formatEuro(proMonat * 12)} pro Jahr</>
         }
-        aktionen={<Link className="btn-primaer" href="/finanzen/fixkosten/neu">+ Fixkosten eintragen</Link>}
+        aktionen={<Link className="btn-primaer" href="/finanzen/fixkosten/neu/">+ Fixkosten eintragen</Link>}
       />
       <div className="karte overflow-x-auto p-0 sm:p-0">
         {aktiv.length ? tabelle(aktiv) : <p className="p-5 text-slate-600">Noch keine laufenden Fixkosten eingetragen.</p>}

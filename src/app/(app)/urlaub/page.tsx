@@ -1,41 +1,48 @@
-import { asc, eq } from "drizzle-orm";
+"use client";
+
 import Link from "next/link";
+import { Suspense, useState } from "react";
+import { Laden } from "@/components/Laden";
 import { Seitenkopf } from "@/components/Seitenkopf";
 import { TeamKalender } from "@/components/TeamKalender";
-import { getDb } from "@/db";
-import { abwesenheit, benutzer } from "@/db/schema";
-import { benoetigeBenutzer } from "@/lib/auth";
+import type { Abwesenheit, Urlaubskonto } from "@/db/schema";
+import { api } from "@/lib/api";
+import { useAbfrage, useParam } from "@/lib/daten";
 import { formatDatum, formatMonat, heute } from "@/lib/format";
+import { pfad } from "@/lib/pfade";
+import { useBenoetige } from "@/lib/sitzung";
 import { plusMonate, plusTage } from "@/lib/technik";
-import { ARTEN, arbeitstage, DARF_EINTRAGEN, DARF_GENEHMIGEN, formatTage, STATUS } from "@/lib/urlaub";
-import { bundesland, ladeAbwesenheiten, ladeKonto, ladeTeam } from "@/lib/urlaub-daten";
+import type { AbwesenheitImKalender, TeamMitglied } from "@/lib/typen";
+import { ARTEN, arbeitstage, DARF_EINTRAGEN, DARF_GENEHMIGEN, formatTage, konto, STATUS } from "@/lib/urlaub";
+import { bundesland } from "@/lib/urlaub-daten";
 
-export default async function Urlaub({ searchParams }: { searchParams: Promise<{ monat?: string }> }) {
-  const b = await benoetigeBenutzer();
-  const verwaltet = DARF_EINTRAGEN.includes(b.rolle);
+type Uebersicht = { meine: Abwesenheit[]; konto: Urlaubskonto | null; offen: (Abwesenheit & { name: string })[] | null };
+
+function Inhalt() {
+  const b = useBenoetige();
   const stichtag = heute();
-  const { monat: m } = await searchParams;
-  const monat = m && /^\d{4}-\d{2}$/.test(m) ? m : stichtag.slice(0, 7);
+  const startMonat = useParam("monat");
+  const [monat, setMonat] = useState(/^\d{4}-\d{2}$/.test(startMonat) ? startMonat : stichtag.slice(0, 7));
   const jahr = Number(stichtag.slice(0, 4));
-  const vorher = plusMonate(`${monat}-01`, -1).slice(0, 7);
-  const nachher = plusMonate(`${monat}-01`, 1).slice(0, 7);
-
-  const db = await getDb();
-  const [land, team, imMonat, meine, offen] = await Promise.all([
-    bundesland(),
-    ladeTeam(),
-    ladeAbwesenheiten(`${monat}-01`, plusTage(plusMonate(`${monat}-01`, 1), -1)),
-    db.select().from(abwesenheit).where(eq(abwesenheit.benutzerId, b.id)).orderBy(asc(abwesenheit.von)),
-    DARF_GENEHMIGEN.includes(b.rolle)
-      ? db
-          .select({ a: abwesenheit, name: benutzer.name })
-          .from(abwesenheit)
-          .innerJoin(benutzer, eq(abwesenheit.benutzerId, benutzer.id))
-          .where(eq(abwesenheit.status, "beantragt"))
-          .orderBy(asc(abwesenheit.von))
-      : Promise.resolve([]),
-  ]);
-  const meinKonto = b.imTeam ? await ladeKonto(b, jahr, land) : null;
+  const { daten, fehler } = useAbfrage(
+    () =>
+      Promise.all([
+        bundesland(),
+        api<TeamMitglied[]>("team"),
+        api<AbwesenheitImKalender[]>("abwesenheiten", { p_von: `${monat}-01`, p_bis: plusTage(plusMonate(`${monat}-01`, 1), -1) }),
+        api<Uebersicht>("urlaub_uebersicht", { p_jahr: jahr }),
+      ]),
+    [monat],
+    !!b,
+  );
+  if (!b) return null;
+  if (!daten) return <Laden fehler={fehler} />;
+  const [land, alleImTeam, imMonat, { meine, konto: kontoEintrag, offen }] = daten;
+  const team = alleImTeam.filter((m) => m.imTeam);
+  const verwaltet = DARF_EINTRAGEN.includes(b.rolle);
+  const meinKonto = b.imTeam
+    ? konto(meine, jahr, kontoEintrag?.anspruchTage ?? b.urlaubstageProJahr, kontoEintrag?.uebertragHalbeTage ?? 0, land)
+    : null;
   const meineAktuellen = meine.filter((a) => a.bis >= `${jahr}-01-01`);
 
   return (
@@ -44,8 +51,8 @@ export default async function Urlaub({ searchParams }: { searchParams: Promise<{
         titel="Urlaub & Abwesenheiten"
         aktionen={
           <>
-            {DARF_GENEHMIGEN.includes(b.rolle) && <Link className="btn" href="/urlaub/konten">Urlaubskonten</Link>}
-            <Link className="btn-primaer" href="/urlaub/neu">{verwaltet ? "+ Abwesenheit eintragen" : "+ Urlaub beantragen"}</Link>
+            {DARF_GENEHMIGEN.includes(b.rolle) && <Link className="btn" href="/urlaub/konten/">Urlaubskonten</Link>}
+            <Link className="btn-primaer" href="/urlaub/neu/">{verwaltet ? "+ Abwesenheit eintragen" : "+ Urlaub beantragen"}</Link>
           </>
         }
       />
@@ -53,19 +60,19 @@ export default async function Urlaub({ searchParams }: { searchParams: Promise<{
       {verwaltet && !land && (
         <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
           Noch kein Bundesland eingestellt – es werden nur bundesweite Feiertage berücksichtigt.{" "}
-          <Link className="underline" href="/einstellungen/wartung">Jetzt einstellen</Link>
+          <Link className="underline" href="/einstellungen/wartung/">Jetzt einstellen</Link>
         </p>
       )}
 
-      {offen.length > 0 && (
+      {offen && offen.length > 0 && (
         <section className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4">
           <h2 className="mb-2 font-semibold text-amber-900">Offene Anträge · {offen.length}</h2>
           <ul className="space-y-2">
-            {offen.map(({ a, name }) => (
+            {offen.map((a) => (
               <li key={a.id}>
-                <Link href={`/urlaub/${a.id}`} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white p-3 hover:bg-amber-100/50">
+                <Link href={pfad.abwesenheit(a.id)} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white p-3 hover:bg-amber-100/50">
                   <span>
-                    <strong>{name}</strong> · {formatDatum(a.von)} – {formatDatum(a.bis)}
+                    <strong>{a.name}</strong> · {formatDatum(a.von)} – {formatDatum(a.bis)}
                   </span>
                   <span className="text-sm text-slate-600">{formatTage(arbeitstage(a, land))} · prüfen →</span>
                 </Link>
@@ -77,9 +84,9 @@ export default async function Urlaub({ searchParams }: { searchParams: Promise<{
 
       <section className="mb-6">
         <div className="mb-2 flex items-center justify-between gap-2">
-          <Link className="btn px-3" href={`/urlaub?monat=${vorher}`} aria-label="Vormonat">‹</Link>
+          <button className="btn px-3" onClick={() => setMonat(plusMonate(`${monat}-01`, -1).slice(0, 7))} aria-label="Vormonat">‹</button>
           <h2 className="font-semibold">{formatMonat(monat)}</h2>
-          <Link className="btn px-3" href={`/urlaub?monat=${nachher}`} aria-label="Nächster Monat">›</Link>
+          <button className="btn px-3" onClick={() => setMonat(plusMonate(`${monat}-01`, 1).slice(0, 7))} aria-label="Nächster Monat">›</button>
         </div>
         {team.length === 0 ? (
           <p className="karte text-sm text-slate-600">Noch keine Mitarbeiter im Team. (Benutzer › „im Urlaubsplaner“)</p>
@@ -119,7 +126,7 @@ export default async function Urlaub({ searchParams }: { searchParams: Promise<{
               <ul className="divide-y divide-slate-100">
                 {meineAktuellen.map((a) => (
                   <li key={a.id}>
-                    <Link href={`/urlaub/${a.id}`} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm hover:underline">
+                    <Link href={pfad.abwesenheit(a.id)} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm hover:underline">
                       <span>
                         {ARTEN[a.art].name}: {formatDatum(a.von)}
                         {a.bis !== a.von && ` – ${formatDatum(a.bis)}`} · {formatTage(arbeitstage(a, land))}
@@ -135,4 +142,8 @@ export default async function Urlaub({ searchParams }: { searchParams: Promise<{
       )}
     </>
   );
+}
+
+export default function Urlaub() {
+  return <Suspense><Inhalt /></Suspense>;
 }

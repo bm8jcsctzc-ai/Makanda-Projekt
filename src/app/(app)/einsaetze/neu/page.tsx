@@ -1,16 +1,26 @@
+"use client";
+
+import { Suspense } from "react";
+import { Laden } from "@/components/Laden";
 import { Seitenkopf } from "@/components/Seitenkopf";
 import { istDatum, istUuid } from "@/lib/aktionen";
-import { benoetigeBenutzer } from "@/lib/auth";
 import { einsatzAuswahl } from "@/lib/auswahl";
+import { useAbfrage, useParam } from "@/lib/daten";
 import { heute } from "@/lib/format";
+import { pfad } from "@/lib/pfade";
+import { useBenoetige } from "@/lib/sitzung";
 import { DARF_PLANEN } from "@/lib/technik";
-import { speichereEinsatz } from "../actions";
+import { speichereEinsatz } from "../aktionen";
 import { EinsatzFormular } from "../EinsatzFormular";
 
-export default async function NeuerEinsatz({ searchParams }: { searchParams: Promise<{ kunde?: string; anlage?: string; datum?: string }> }) {
-  await benoetigeBenutzer(DARF_PLANEN);
-  const { kunde, anlage, datum } = await searchParams;
-  const auswahl = await einsatzAuswahl();
+function Inhalt() {
+  const b = useBenoetige(DARF_PLANEN);
+  const kunde = useParam("kunde");
+  const anlage = useParam("anlage");
+  const datum = useParam("datum");
+  const { daten: auswahl, fehler } = useAbfrage(einsatzAuswahl, [], !!b);
+  if (!b) return null;
+  if (!auswahl) return <Laden fehler={fehler} />;
   return (
     <>
       <Seitenkopf titel="Einsatz planen" />
@@ -22,13 +32,17 @@ export default async function NeuerEinsatz({ searchParams }: { searchParams: Pro
           vorauswahl={{
             kundeId: istUuid(kunde) ? kunde : undefined,
             anlageId: istUuid(anlage) ? anlage : undefined,
-            datum: datum && istDatum(datum) ? datum : undefined,
+            datum: istDatum(datum) ? datum : undefined,
           }}
           {...auswahl}
           heute={heute()}
-          zurueck={istUuid(kunde) ? `/kunden/${kunde}` : "/einsaetze"}
+          zurueck={istUuid(kunde) ? pfad.kunde(kunde) : "/einsaetze/"}
         />
       )}
     </>
   );
+}
+
+export default function NeuerEinsatz() {
+  return <Suspense><Inhalt /></Suspense>;
 }

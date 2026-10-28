@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { checklisteSpeichern } from "@/app/(app)/einsaetze/checkliste-actions";
+import { api, fehlertext } from "@/lib/api";
 import type { Antwort, Pruefpunkt } from "@/db/schema";
 import type { FormularZustand } from "@/lib/aktionen";
 import { istAusserhalb, parseZahl } from "@/lib/technik";
@@ -22,7 +22,15 @@ export function richtwert(p: Pruefpunkt): string | null {
   return null;
 }
 
-export function ChecklisteFormular({ ergebnisId, punkte, start }: { ergebnisId: string; punkte: Pruefpunkt[]; start: Record<string, Antwort> }) {
+type Props = {
+  ergebnisId: string;
+  punkte: Pruefpunkt[];
+  start: Record<string, Antwort>;
+  /** Nach dem Abschließen */
+  abgeschlossen: () => void;
+};
+
+export function ChecklisteFormular({ ergebnisId, punkte, start, abgeschlossen }: Props) {
   const [antworten, setAntworten] = useState(start);
   const [geaendert, setGeaendert] = useState(false);
   const [meldung, setMeldung] = useState<FormularZustand>();
@@ -44,9 +52,14 @@ export function ChecklisteFormular({ ergebnisId, punkte, start }: { ergebnisId: 
 
   function speichern(abschliessen: boolean) {
     startTransition(async () => {
-      const antwort = await checklisteSpeichern(ergebnisId, antworten, abschliessen);
-      setMeldung(antwort);
-      if (!antwort?.fehler) setGeaendert(false);
+      try {
+        await api("checkliste_speichern", { p_id: ergebnisId, p_antworten: antworten, p_abschliessen: abschliessen });
+        setGeaendert(false);
+        if (abschliessen) abgeschlossen();
+        else setMeldung({ erfolg: "Zwischengespeichert." });
+      } catch (e) {
+        setMeldung({ fehler: fehlertext(e) });
+      }
     });
   }
 

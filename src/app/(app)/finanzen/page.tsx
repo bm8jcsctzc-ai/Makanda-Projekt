@@ -1,10 +1,15 @@
-import { asc } from "drizzle-orm";
+"use client";
+
 import Link from "next/link";
+import { Suspense, useState } from "react";
 import { KostenVerlauf } from "@/components/KostenVerlauf";
+import { Laden } from "@/components/Laden";
 import { Seitenkopf } from "@/components/Seitenkopf";
-import { getDb } from "@/db";
-import { fixkosten, personalkosten, rechnung } from "@/db/schema";
-import { benoetigeBenutzer, DARF_FINANZEN, DARF_GEHAELTER } from "@/lib/auth";
+import { useAbfrage, useParam } from "@/lib/daten";
+import { ladeFinanzen } from "@/lib/finanz-daten";
+import { pfad } from "@/lib/pfade";
+import { DARF_FINANZEN, DARF_GEHAELTER } from "@/lib/rechte";
+import { useBenoetige } from "@/lib/sitzung";
 import { letzteMonate, monatsWerte, nachKategorie } from "@/lib/finanzen";
 import { formatDatum, formatEuro, formatMonat, heute } from "@/lib/format";
 
@@ -24,19 +29,18 @@ function Kennzahl({ titel, cent, vormonat, hinweis }: { titel: string; cent: num
   );
 }
 
-export default async function FinanzUebersicht({ searchParams }: { searchParams: Promise<{ monat?: string }> }) {
-  const b = await benoetigeBenutzer(DARF_FINANZEN);
-  const mitPersonal = DARF_GEHAELTER.includes(b.rolle);
+function Inhalt() {
+  const b = useBenoetige(DARF_FINANZEN);
   const stichtag = heute();
-  const { monat: monatParam } = await searchParams;
-  const monat = monatParam && /^\d{4}-\d{2}$/.test(monatParam) ? monatParam : stichtag.slice(0, 7);
-
-  const db = await getDb();
-  const [rechnungen, fix, personal] = await Promise.all([
-    db.select().from(rechnung).orderBy(asc(rechnung.faelligAm)),
-    db.select().from(fixkosten),
-    mitPersonal ? db.select().from(personalkosten) : Promise.resolve(null),
-  ]);
+  const monatParam = useParam("monat");
+  const [monat, setMonat] = useState(/^\d{4}-\d{2}$/.test(monatParam) ? monatParam : stichtag.slice(0, 7));
+  const { daten, fehler } = useAbfrage(ladeFinanzen, [], !!b);
+  if (!b) return null;
+  if (!daten) return <Laden fehler={fehler} />;
+  const mitPersonal = DARF_GEHAELTER.includes(b.rolle);
+  const { fixkosten: fix, personal } = daten;
+  // Offene Rechnungen nach Fälligkeit
+  const rechnungen = [...daten.rechnungen].sort((x, y) => (x.faelligAm ?? "9999").localeCompare(y.faelligAm ?? "9999"));
 
   const verlauf = letzteMonate(monat, 12).map((m) => monatsWerte(m, rechnungen, fix, personal));
   const dieser = verlauf[verlauf.length - 1];
@@ -55,7 +59,14 @@ export default async function FinanzUebersicht({ searchParams }: { searchParams:
         titel="Finanzübersicht"
         untertitel={`Kosten im ${formatMonat(monat)}`}
         aktionen={
-          <form className="flex gap-2">
+          <form
+            className="flex gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const wert = String(new FormData(e.currentTarget).get("monat"));
+              if (/^\d{4}-\d{2}$/.test(wert)) setMonat(wert);
+            }}
+          >
             <input className="eingabe w-auto" type="month" name="monat" defaultValue={monat} aria-label="Monat" />
             <button className="btn">Anzeigen</button>
           </form>
@@ -66,9 +77,9 @@ export default async function FinanzUebersicht({ searchParams }: { searchParams:
         <div className="karte mb-4 border-marke/30 bg-blue-50">
           <p className="font-medium">So geht&apos;s los</p>
           <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-slate-700">
-            <li><Link className="text-marke underline" href="/finanzen/fixkosten/neu">Fixkosten eintragen</Link> – Miete, Leasing, Versicherungen, Software …</li>
-            <li><Link className="text-marke underline" href="/finanzen/rechnungen/neu">Rechnungen erfassen</Link> – als PDF oder Handyfoto hochladen</li>
-            {mitPersonal && <li><Link className="text-marke underline" href="/finanzen/gehaelter/neu">Gehälter eintragen</Link></li>}
+            <li><Link className="text-marke underline" href="/finanzen/fixkosten/neu/">Fixkosten eintragen</Link> – Miete, Leasing, Versicherungen, Software …</li>
+            <li><Link className="text-marke underline" href="/finanzen/rechnungen/neu/">Rechnungen erfassen</Link> – als PDF oder Handyfoto hochladen</li>
+            {mitPersonal && <li><Link className="text-marke underline" href="/finanzen/gehaelter/neu/">Gehälter eintragen</Link></li>}
           </ol>
         </div>
       )}
@@ -101,7 +112,7 @@ export default async function FinanzUebersicht({ searchParams }: { searchParams:
                   <ul className="mt-1 space-y-1 text-sm">
                     {ueberfaellig.map((r) => (
                       <li key={r.id} className="flex justify-between gap-2">
-                        <Link className="truncate text-red-900 underline" href={`/finanzen/rechnungen/${r.id}`}>{r.lieferant}</Link>
+                        <Link className="truncate text-red-900 underline" href={pfad.rechnung(r.id)}>{r.lieferant}</Link>
                         <span className="whitespace-nowrap tabular-nums">{formatEuro(r.bruttoCent)}</span>
                       </li>
                     ))}
@@ -112,7 +123,7 @@ export default async function FinanzUebersicht({ searchParams }: { searchParams:
                 <ul className="mt-3 space-y-1 text-sm">
                   {bald.map((r) => (
                     <li key={r.id} className="flex justify-between gap-2">
-                      <Link className="truncate text-marke underline" href={`/finanzen/rechnungen/${r.id}`}>{r.lieferant}</Link>
+                      <Link className="truncate text-marke underline" href={pfad.rechnung(r.id)}>{r.lieferant}</Link>
                       <span className="whitespace-nowrap text-slate-500">
                         {r.faelligAm ? `fällig ${formatDatum(r.faelligAm)}` : "ohne Fälligkeit"}
                       </span>
@@ -120,7 +131,7 @@ export default async function FinanzUebersicht({ searchParams }: { searchParams:
                   ))}
                 </ul>
               )}
-              <Link className="mt-3 inline-block text-sm text-marke underline" href="/finanzen/rechnungen?status=offen">alle offenen ansehen</Link>
+              <Link className="mt-3 inline-block text-sm text-marke underline" href="/finanzen/rechnungen/?status=offen">alle offenen ansehen</Link>
             </>
           )}
         </section>
@@ -152,4 +163,8 @@ export default async function FinanzUebersicht({ searchParams }: { searchParams:
       </div>
     </>
   );
+}
+
+export default function FinanzUebersicht() {
+  return <Suspense><Inhalt /></Suspense>;
 }

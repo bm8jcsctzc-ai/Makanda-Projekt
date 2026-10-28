@@ -55,7 +55,7 @@ export function FixkostenFormular({ aktion, eintrag: f, heute }: Props) {
       </div>
       <div className="flex gap-2 sm:col-span-2">
         <button className="btn-primaer" disabled={laeuft}>{laeuft ? "Speichern …" : "Speichern"}</button>
-        <Link className="btn" href="/finanzen/fixkosten">Abbrechen</Link>
+        <Link className="btn" href="/finanzen/fixkosten/">Abbrechen</Link>
       </div>
     </form>
   );

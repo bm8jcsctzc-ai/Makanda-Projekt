@@ -1,20 +1,24 @@
+"use client";
+
+import { Laden } from "@/components/Laden";
 import { Seitenkopf } from "@/components/Seitenkopf";
-import { benoetigeBenutzer, DARF_GEHAELTER } from "@/lib/auth";
+import { useAbfrage } from "@/lib/daten";
 import { heute } from "@/lib/format";
-import { mitarbeiterNamen } from "../daten";
-import { speicherePersonalkosten } from "../actions";
+import { DARF_GEHAELTER } from "@/lib/rechte";
+import { useBenoetige } from "@/lib/sitzung";
+import { speicherePersonalkosten } from "../../aktionen";
+import { ladeGehaelter } from "../daten";
 import { GehaltsFormular } from "../GehaltsFormular";
 
-export default async function NeuesGehalt() {
-  await benoetigeBenutzer(DARF_GEHAELTER);
+export default function NeuesGehalt() {
+  const b = useBenoetige(DARF_GEHAELTER);
+  const { daten, fehler } = useAbfrage(ladeGehaelter, [], !!b);
+  if (!b) return null;
+  if (!daten) return <Laden fehler={fehler} />;
   return (
     <>
       <Seitenkopf titel="Gehalt eintragen" />
-      <GehaltsFormular
-        aktion={speicherePersonalkosten.bind(null, null)}
-        mitarbeiterVorschlaege={await mitarbeiterNamen()}
-        heute={heute()}
-      />
+      <GehaltsFormular aktion={speicherePersonalkosten.bind(null, null)} mitarbeiterVorschlaege={daten.namen} heute={heute()} />
     </>
   );
 }

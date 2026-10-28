@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import type { FormularZustand } from "@/lib/aktionen";
 import { useFormular } from "@/lib/useFormular";
 
@@ -31,8 +32,11 @@ export function ChecklisteStartenFormular({ aktion, vorlagen }: { aktion: Aktion
   );
 }
 
-export function AbschlussFormular({ aktion }: { aktion: Aktion }) {
+export function AbschlussFormular({ aktion, fertig }: { aktion: Aktion; fertig: () => void }) {
   const { zustand, laeuft, formularProps } = useFormular(aktion);
+  useEffect(() => {
+    if (zustand?.erfolg) fertig();
+  }, [zustand, fertig]);
   return (
     <form {...formularProps} className="space-y-3">
       {zustand?.fehler && <p className="fehler-box">{zustand.fehler}</p>}

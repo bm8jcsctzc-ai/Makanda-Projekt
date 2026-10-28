@@ -1,5 +1,10 @@
-import { redirect } from "next/navigation";
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function Einstellungen() {
-  redirect("/einstellungen/checklisten");
+  const router = useRouter();
+  useEffect(() => router.replace("/einstellungen/checklisten/"), [router]);
+  return null;
 }

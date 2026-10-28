@@ -15,11 +15,11 @@ import {
 
 export const rolle = pgEnum("rolle", ["inhaber", "buero", "monteur"]);
 
-export const benutzer = pgTable("benutzer", {
-  id: uuid("id").primaryKey().defaultRandom(),
+// Profil zu einem Supabase-Login (auth.users); id = Benutzer-ID aus Supabase Auth
+export const benutzer = pgTable("profil", {
+  id: uuid("id").primaryKey(),
   name: text("name").notNull(),
-  email: text("email").notNull().unique(),
-  passwortHash: text("passwort_hash").notNull(),
+  email: text("email").notNull(),
   rolle: rolle("rolle").notNull(),
   aktiv: boolean("aktiv").notNull().default(true),
   // Erscheint im Urlaubsplaner (Mitarbeiter des Betriebs; z. B. nicht für reine Test- oder Büro-Zugänge)
@@ -87,7 +87,18 @@ export const personalkosten = pgTable("personalkosten", {
   erstelltAm: timestamp("erstellt_am", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/** Einladung für einen neuen Mitarbeiter: Er registriert sich mit dieser E-Mail und dem Code */
+export const einladung = pgTable("einladung", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: text("email").notNull().unique(),
+  name: text("name").notNull(),
+  rolle: rolle("rolle").notNull(),
+  code: text("code").notNull(),
+  erstelltAm: timestamp("erstellt_am", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type Benutzer = typeof benutzer.$inferSelect;
+export type Einladung = typeof einladung.$inferSelect;
 export type Rolle = (typeof rolle.enumValues)[number];
 export type Rechnung = typeof rechnung.$inferSelect;
 export type Fixkosten = typeof fixkosten.$inferSelect;
@@ -252,8 +263,6 @@ export const einstellungen = pgTable("einstellungen", {
   haeufungGrenze: integer("haeufung_grenze"),
   // Kürzel des Bundeslands für die Feiertage, z. B. "NI"
   bundesland: text("bundesland"),
-  // Geheimer Schlüssel für die Anmelde-Cookies; wird beim ersten Start erzeugt, falls SESSION_SECRET fehlt
-  sitzungsSchluessel: text("sitzungs_schluessel"),
 });
 
 export const wartungErinnerung = pgTable(
@@ -269,7 +278,8 @@ export const wartungErinnerung = pgTable(
   (t) => [unique("wartung_erinnerung_einmalig").on(t.anlageId, t.faelligAm)],
 );
 
-export const mailstatus = pgEnum("mailstatus", ["gesendet", "testmodus", "fehler"]);
+// wartend: von der App eingereiht, wird vom Automatik-Dienst (GitHub Actions) verschickt
+export const mailstatus = pgEnum("mailstatus", ["wartend", "gesendet", "testmodus", "fehler"]);
 
 export const mailProtokoll = pgTable("mail_protokoll", {
   id: uuid("id").primaryKey().defaultRandom(),

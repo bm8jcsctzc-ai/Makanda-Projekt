@@ -1,11 +1,14 @@
+"use client";
+
 import { Seitenkopf } from "@/components/Seitenkopf";
-import { benoetigeBenutzer, DARF_FINANZEN } from "@/lib/auth";
 import { heute } from "@/lib/format";
-import { speichereFixkosten } from "../actions";
+import { DARF_FINANZEN } from "@/lib/rechte";
+import { useBenoetige } from "@/lib/sitzung";
+import { speichereFixkosten } from "../../aktionen";
 import { FixkostenFormular } from "../FixkostenFormular";
 
-export default async function NeueFixkosten() {
-  await benoetigeBenutzer(DARF_FINANZEN);
+export default function NeueFixkosten() {
+  if (!useBenoetige(DARF_FINANZEN)) return null;
   return (
     <>
       <Seitenkopf titel="Fixkosten eintragen" untertitel="Regelmäßige Kosten wie Miete, Leasing, Versicherungen, Software." />

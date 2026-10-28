@@ -11,7 +11,9 @@ export function Navigation({ punkte, genau = ["/"], klein = false }: { punkte: N
   return (
     <nav className={`flex flex-wrap gap-1 ${klein ? "mb-5 border-b border-slate-200 pb-3" : ""}`}>
       {punkte.map((p) => {
-        const aktiv = genau.includes(p.href) ? pfad === p.href : pfad.startsWith(p.href);
+        // Ohne Schrägstrich am Ende vergleichen (/finanzen und /finanzen/ sind dieselbe Seite)
+        const ohne = (x: string) => x.replace(/\/$/, "") || "/";
+        const aktiv = genau.includes(p.href) ? ohne(pfad) === ohne(p.href) : ohne(pfad).startsWith(ohne(p.href));
         return (
           <Link
             key={p.href}

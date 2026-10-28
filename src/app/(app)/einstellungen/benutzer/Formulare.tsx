@@ -1,12 +1,12 @@
 "use client";
 
-import { useFormular } from "@/lib/useFormular";
 import type { Benutzer } from "@/db/schema";
 import type { FormularZustand } from "@/lib/aktionen";
+import { useFormular } from "@/lib/useFormular";
 
 type Aktion = (zustand: FormularZustand, form: FormData) => Promise<FormularZustand>;
 
-const ROLLEN = [
+export const ROLLEN = [
   { wert: "inhaber", name: "Inhaber – alles, auch Gehälter und Benutzer" },
   { wert: "buero", name: "Büro – Rechnungen, Fixkosten, Übersicht" },
   { wert: "monteur", name: "Monteur – nur eigene Einsätze" },
@@ -18,11 +18,23 @@ function Meldung({ zustand }: { zustand: FormularZustand }) {
   return null;
 }
 
-export function NeuerBenutzer({ aktion }: { aktion: Aktion }) {
-  const { zustand, laeuft, formularProps } = useFormular(aktion, { leerenBeiErfolg: true });
+export function Einladen({ aktion, nachher }: { aktion: Aktion; nachher: () => void }) {
+  const { zustand, laeuft, formularProps } = useFormular(
+    async (z, f) => {
+      const r = await aktion(z, f);
+      nachher();
+      return r;
+    },
+    { leerenBeiErfolg: true },
+  );
   return (
     <form {...formularProps} className="karte grid gap-3 sm:grid-cols-2">
-      <h2 className="font-semibold sm:col-span-2">Neuen Zugang anlegen</h2>
+      <div className="sm:col-span-2">
+        <h2 className="font-semibold">Neue Person einladen</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Die App erzeugt einen Einladungscode. Gib ihn der Person persönlich. Sie registriert sich damit selbst und wählt ihr eigenes Passwort.
+        </p>
+      </div>
       <div className="sm:col-span-2"><Meldung zustand={zustand} /></div>
       <div>
         <label className="feld-label" htmlFor="neu-name">Name</label>
@@ -38,12 +50,8 @@ export function NeuerBenutzer({ aktion }: { aktion: Aktion }) {
           {ROLLEN.map((r) => <option key={r.wert} value={r.wert}>{r.name}</option>)}
         </select>
       </div>
-      <div>
-        <label className="feld-label" htmlFor="neu-passwort">Startpasswort (mind. 10 Zeichen)</label>
-        <input className="eingabe" id="neu-passwort" name="passwort" minLength={10} required autoComplete="new-password" />
-      </div>
-      <div className="sm:col-span-2">
-        <button className="btn-primaer" disabled={laeuft}>Anlegen</button>
+      <div className="flex items-end">
+        <button className="btn-primaer" disabled={laeuft}>Einladen</button>
       </div>
     </form>
   );
@@ -52,7 +60,7 @@ export function NeuerBenutzer({ aktion }: { aktion: Aktion }) {
 export function BenutzerZeile({ benutzer: b, aktion, binIchSelbst }: { benutzer: Benutzer; aktion: Aktion; binIchSelbst: boolean }) {
   const { zustand, laeuft, formularProps } = useFormular(aktion);
   return (
-    <form {...formularProps} className="grid gap-3 border-b border-slate-100 py-4 last:border-0 md:grid-cols-[1fr_14rem_auto_14rem_auto] md:items-center">
+    <form {...formularProps} className="grid gap-3 border-b border-slate-100 py-4 last:border-0 md:grid-cols-[1fr_14rem_auto_auto] md:items-center">
       <div>
         <p className="font-medium">{b.name}{binIchSelbst && <span className="text-slate-400"> (du)</span>}</p>
         <p className="text-sm text-slate-500">{b.email}</p>
@@ -68,9 +76,8 @@ export function BenutzerZeile({ benutzer: b, aktion, binIchSelbst }: { benutzer:
           <input type="checkbox" name="imTeam" defaultChecked={b.imTeam} className="size-4" /> im Urlaubsplaner
         </label>
       </div>
-      <input className="eingabe" name="passwort" placeholder="neues Passwort (optional)" minLength={10} autoComplete="new-password" aria-label="Neues Passwort" />
       <button className="btn" disabled={laeuft}>Speichern</button>
-      {zustand && <div className="md:col-span-5"><Meldung zustand={zustand} /></div>}
+      {zustand && <div className="md:col-span-4"><Meldung zustand={zustand} /></div>}
     </form>
   );
 }

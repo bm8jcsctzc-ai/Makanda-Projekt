@@ -1,14 +1,13 @@
 import type { NextConfig } from "next";
 
+// Statische Website für GitHub Pages: alle Seiten werden beim Bauen zu HTML-Dateien,
+// die Daten holt der Browser direkt von Supabase.
 const nextConfig: NextConfig = {
-  // PGlite bringt eigene WebAssembly-Dateien mit und darf nicht gebündelt werden.
-  serverExternalPackages: ["@electric-sql/pglite"],
-  // Die Datenbank-Migrationen werden zur Laufzeit gelesen und müssen mit auf den Server
-  outputFileTracingIncludes: { "/**": ["./drizzle/**/*"] },
-  experimental: {
-    // Rechnungen als PDF oder Foto hochladen (max. 4 MB, siehe src/lib/dateien.ts)
-    serverActions: { bodySizeLimit: "5mb" },
-  },
+  output: "export",
+  // Auf GitHub Pages liegt die App unter /<Projektname>/ (wird im Workflow gesetzt)
+  basePath: process.env.NEXT_PUBLIC_BASE_PATH || "",
+  trailingSlash: true,
+  images: { unoptimized: true },
 };
 
 export default nextConfig;

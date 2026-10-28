@@ -1,28 +1,36 @@
-import { and, eq } from "drizzle-orm";
-import Link from "next/link";
+"use client";
+
+import { Suspense, useState } from "react";
+import { Laden } from "@/components/Laden";
 import { Seitenkopf } from "@/components/Seitenkopf";
-import { getDb } from "@/db";
-import { urlaubskonto } from "@/db/schema";
-import { benoetigeBenutzer } from "@/lib/auth";
+import type { Abwesenheit, Urlaubskonto } from "@/db/schema";
+import { api } from "@/lib/api";
+import { useAbfrage, useParam } from "@/lib/daten";
 import { heute } from "@/lib/format";
-import { DARF_GENEHMIGEN, formatTage } from "@/lib/urlaub";
-import { bundesland, ladeKonto, ladeTeam } from "@/lib/urlaub-daten";
-import { kontoSpeichern } from "../actions";
+import { useBenoetige } from "@/lib/sitzung";
+import type { TeamMitglied } from "@/lib/typen";
+import { DARF_GENEHMIGEN, formatTage, konto } from "@/lib/urlaub";
+import { bundesland } from "@/lib/urlaub-daten";
+import { kontoSpeichern } from "../aktionen";
 import { KontoFormular } from "../Formulare";
 
-export default async function Urlaubskonten({ searchParams }: { searchParams: Promise<{ jahr?: string }> }) {
-  await benoetigeBenutzer(DARF_GENEHMIGEN);
-  const { jahr: j } = await searchParams;
-  const aktuell = Number(heute().slice(0, 4));
-  const jahr = j && /^\d{4}$/.test(j) ? Number(j) : aktuell;
-  const [land, team] = await Promise.all([bundesland(), ladeTeam()]);
-  const db = await getDb();
-  const zeilen = await Promise.all(
-    team.map(async (b) => {
-      const [eintrag] = await db.select().from(urlaubskonto).where(and(eq(urlaubskonto.benutzerId, b.id), eq(urlaubskonto.jahr, jahr)));
-      return { b, eintrag, konto: await ladeKonto(b, jahr, land) };
-    }),
+function Inhalt() {
+  const b = useBenoetige(DARF_GENEHMIGEN);
+  const start = useParam("jahr");
+  const [jahr, setJahr] = useState(/^\d{4}$/.test(start) ? Number(start) : Number(heute().slice(0, 4)));
+  const { daten, fehler, neuLaden } = useAbfrage(
+    () =>
+      Promise.all([
+        bundesland(),
+        api<TeamMitglied[]>("team"),
+        api<{ konten: Urlaubskonto[]; urlaub: Abwesenheit[] }>("urlaubskonten", { p_jahr: jahr }),
+      ]),
+    [jahr],
+    !!b,
   );
+  if (!b) return null;
+  if (!daten) return <Laden fehler={fehler} />;
+  const [land, team, { konten, urlaub }] = daten;
 
   return (
     <>
@@ -31,8 +39,8 @@ export default async function Urlaubskonten({ searchParams }: { searchParams: Pr
         untertitel="Anspruch + Übertrag aus dem Vorjahr. Halbe Tage sind möglich (z. B. 2,5)."
         aktionen={
           <>
-            <Link className="btn" href={`/urlaub/konten?jahr=${jahr - 1}`}>‹ {jahr - 1}</Link>
-            <Link className="btn" href={`/urlaub/konten?jahr=${jahr + 1}`}>{jahr + 1} ›</Link>
+            <button className="btn" onClick={() => setJahr(jahr - 1)}>‹ {jahr - 1}</button>
+            <button className="btn" onClick={() => setJahr(jahr + 1)}>{jahr + 1} ›</button>
           </>
         }
       />
@@ -48,24 +56,32 @@ export default async function Urlaubskonten({ searchParams }: { searchParams: Pr
             </tr>
           </thead>
           <tbody>
-            {zeilen.map(({ b, eintrag, konto }) => (
-              <tr key={b.id}>
-                <td className="font-medium">{b.name}</td>
-                <td>
-                  <KontoFormular
-                    aktion={kontoSpeichern.bind(null, b.id, jahr)}
-                    anspruch={eintrag?.anspruchTage ?? b.urlaubstageProJahr}
-                    uebertrag={(eintrag?.uebertragHalbeTage ?? 0) / 2}
-                  />
-                </td>
-                <td className="betrag">{formatTage(konto.genehmigt)}</td>
-                <td className="betrag">{formatTage(konto.beantragt)}</td>
-                <td className={`betrag font-semibold ${konto.rest < 0 ? "text-red-700" : ""}`}>{formatTage(konto.rest)}</td>
-              </tr>
-            ))}
+            {team
+              .filter((m) => m.imTeam)
+              .map((m) => {
+                const eintrag = konten.find((k) => k.benutzerId === m.id);
+                const anspruch = eintrag?.anspruchTage ?? m.urlaubstageProJahr;
+                const uebertragHalbe = eintrag?.uebertragHalbeTage ?? 0;
+                const k = konto(urlaub.filter((u) => u.benutzerId === m.id), jahr, anspruch, uebertragHalbe, land);
+                return (
+                  <tr key={`${m.id}-${jahr}`}>
+                    <td className="font-medium">{m.name}</td>
+                    <td>
+                      <KontoFormular aktion={kontoSpeichern.bind(null, m.id, jahr)} anspruch={anspruch} uebertrag={uebertragHalbe / 2} fertig={neuLaden} />
+                    </td>
+                    <td className="betrag">{formatTage(k.genehmigt)}</td>
+                    <td className="betrag">{formatTage(k.beantragt)}</td>
+                    <td className={`betrag font-semibold ${k.rest < 0 ? "text-red-700" : ""}`}>{formatTage(k.rest)}</td>
+                  </tr>
+                );
+              })}
           </tbody>
         </table>
       </div>
     </>
   );
+}
+
+export default function Urlaubskonten() {
+  return <Suspense><Inhalt /></Suspense>;
 }

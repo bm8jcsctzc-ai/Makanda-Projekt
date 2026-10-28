@@ -1,6 +1,7 @@
 "use client";
 
 import { verkleinern } from "@/lib/bild";
+import { dateiOeffnen } from "@/lib/dateien";
 import { useFormular } from "@/lib/useFormular";
 import Link from "next/link";
 import type { Rechnung } from "@/db/schema";
@@ -12,11 +13,12 @@ type Props = {
   aktion: (zustand: FormularZustand, form: FormData) => Promise<FormularZustand>;
   rechnung?: Rechnung;
   dateiName?: string | null;
+  dateiPfad?: string | null;
   lieferanten: string[];
   heute: string;
 };
 
-export function RechnungsFormular({ aktion, rechnung: r, dateiName, lieferanten, heute }: Props) {
+export function RechnungsFormular({ aktion, rechnung: r, dateiName, dateiPfad, lieferanten, heute }: Props) {
   const { zustand, laeuft, formularProps } = useFormular(aktion, {
     // Handyfotos von Rechnungen verkleinern, damit sie unter der Upload-Grenze bleiben
     vorbereiten: async (daten) => {
@@ -42,9 +44,9 @@ export function RechnungsFormular({ aktion, rechnung: r, dateiName, lieferanten,
         {r && dateiName && (
           <p className="mt-1 text-sm text-slate-600">
             Vorhanden:{" "}
-            <a className="text-marke underline" href={`/dateien/${r.dateiId}`} target="_blank">
+            <button type="button" className="text-marke underline" onClick={() => dateiPfad && dateiOeffnen(dateiPfad)}>
               {dateiName}
-            </a>
+            </button>
           </p>
         )}
       </div>
@@ -100,7 +102,7 @@ export function RechnungsFormular({ aktion, rechnung: r, dateiName, lieferanten,
 
       <div className="flex gap-2 sm:col-span-2">
         <button className="btn-primaer" disabled={laeuft}>{laeuft ? "Speichern …" : "Speichern"}</button>
-        <Link className="btn" href="/finanzen/rechnungen">Abbrechen</Link>
+        <Link className="btn" href="/finanzen/rechnungen/">Abbrechen</Link>
       </div>
     </form>
   );

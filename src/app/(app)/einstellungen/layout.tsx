@@ -1,14 +1,18 @@
+"use client";
+
 import { Navigation, type NavPunkt } from "@/components/Navigation";
-import { benoetigeBenutzer, DARF_BENUTZER } from "@/lib/auth";
+import { DARF_BENUTZER } from "@/lib/rechte";
+import { useBenoetige } from "@/lib/sitzung";
 import { DARF_PLANEN } from "@/lib/technik";
 
-export default async function EinstellungenLayout({ children }: { children: React.ReactNode }) {
-  const b = await benoetigeBenutzer(DARF_PLANEN);
+export default function EinstellungenLayout({ children }: { children: React.ReactNode }) {
+  const b = useBenoetige(DARF_PLANEN);
+  if (!b) return null;
   const reiter: NavPunkt[] = [
-    { href: "/einstellungen/checklisten", titel: "Checklisten" },
-    { href: "/einstellungen/wartung", titel: "Betrieb & E-Mails" },
-    { href: "/einstellungen/emails", titel: "E-Mail-Protokoll" },
-    ...(DARF_BENUTZER.includes(b.rolle) ? [{ href: "/einstellungen/benutzer", titel: "Benutzer" }] : []),
+    { href: "/einstellungen/checklisten/", titel: "Checklisten" },
+    { href: "/einstellungen/wartung/", titel: "Betrieb & E-Mails" },
+    { href: "/einstellungen/emails/", titel: "E-Mail-Protokoll" },
+    ...(DARF_BENUTZER.includes(b.rolle) ? [{ href: "/einstellungen/benutzer/", titel: "Benutzer" }] : []),
   ];
   return (
     <>

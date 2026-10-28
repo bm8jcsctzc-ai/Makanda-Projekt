@@ -1,24 +1,31 @@
-import { eq } from "drizzle-orm";
-import { notFound } from "next/navigation";
+"use client";
+
+import { Suspense } from "react";
+import { Laden, NichtGefunden } from "@/components/Laden";
 import { Seitenkopf } from "@/components/Seitenkopf";
-import { getDb } from "@/db";
-import { kunde } from "@/db/schema";
-import { istUuid } from "@/lib/aktionen";
-import { benoetigeBenutzer } from "@/lib/auth";
-import { speichereAnlage } from "../actions";
+import type { Kunde } from "@/db/schema";
+import { api } from "@/lib/api";
+import { useAbfrage, useParam } from "@/lib/daten";
+import { pfad } from "@/lib/pfade";
+import { useBenoetige } from "@/lib/sitzung";
+import { speichereAnlage } from "../aktionen";
 import { AnlagenFormular } from "../AnlagenFormular";
 
-export default async function NeueAnlage({ searchParams }: { searchParams: Promise<{ kunde?: string }> }) {
-  await benoetigeBenutzer();
-  const { kunde: kundeId } = await searchParams;
-  if (!istUuid(kundeId)) notFound();
-  const db = await getDb();
-  const [k] = await db.select().from(kunde).where(eq(kunde.id, kundeId));
-  if (!k) notFound();
+function Inhalt() {
+  const b = useBenoetige();
+  const kundeId = useParam("kunde");
+  const { daten, fehler } = useAbfrage(() => api<{ kunde: Kunde } | null>("kunde", { p_id: kundeId }), [kundeId], !!b && !!kundeId);
+  if (!b) return null;
+  if (daten === null || !kundeId) return <NichtGefunden was="Der Kunde" />;
+  if (!daten) return <Laden fehler={fehler} />;
   return (
     <>
-      <Seitenkopf titel="Anlage erfassen" untertitel={`bei ${k.name}`} />
-      <AnlagenFormular aktion={speichereAnlage.bind(null, null, k.id)} zurueck={`/kunden/${k.id}`} />
+      <Seitenkopf titel="Anlage erfassen" untertitel={`bei ${daten.kunde.name}`} />
+      <AnlagenFormular aktion={speichereAnlage.bind(null, null, kundeId)} zurueck={pfad.kunde(kundeId)} />
     </>
   );
+}
+
+export default function NeueAnlage() {
+  return <Suspense><Inhalt /></Suspense>;
 }

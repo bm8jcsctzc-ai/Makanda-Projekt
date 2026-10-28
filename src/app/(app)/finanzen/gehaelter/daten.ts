@@ -1,12 +1,11 @@
-import { getDb } from "@/db";
-import { benutzer, personalkosten } from "@/db/schema";
+import type { TeamMitglied } from "@/lib/typen";
+import { api } from "@/lib/api";
+import { ladeFinanzen } from "@/lib/finanz-daten";
 
-/** Namen aus Benutzern und bisherigen Gehaltseinträgen, für die Vorschlagsliste */
-export async function mitarbeiterNamen(): Promise<string[]> {
-  const db = await getDb();
-  const [a, b] = await Promise.all([
-    db.select({ n: benutzer.name }).from(benutzer),
-    db.select({ n: personalkosten.mitarbeiter }).from(personalkosten),
-  ]);
-  return [...new Set([...a, ...b].map((z) => z.n))].sort((x, y) => x.localeCompare(y, "de"));
+/** Gehälter plus Namen aus Team und bisherigen Einträgen für die Vorschlagsliste */
+export async function ladeGehaelter() {
+  const [finanzen, team] = await Promise.all([ladeFinanzen(), api<TeamMitglied[]>("team")]);
+  const personal = finanzen.personal ?? [];
+  const namen = [...new Set([...team.map((t) => t.name), ...personal.map((p) => p.mitarbeiter)])].sort((x, y) => x.localeCompare(y, "de"));
+  return { personal, namen };
 }

@@ -1,14 +1,14 @@
 import type { Benutzer } from "@/db/schema";
 import { feiertag, istWochenende, type Bundesland } from "@/lib/feiertage";
+import type { AbwesenheitImKalender, TeamMitglied } from "@/lib/typen";
 import { ARTEN, DARF_EINTRAGEN, tage } from "@/lib/urlaub";
-import type { AbwesenheitMitName } from "@/lib/urlaub-daten";
 
 const WOCHENTAG = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
 
 type Props = {
   monat: string;
-  team: Benutzer[];
-  abwesenheiten: AbwesenheitMitName[];
+  team: TeamMitglied[];
+  abwesenheiten: AbwesenheitImKalender[];
   land: Bundesland | null;
   betrachter: Benutzer;
   heute: string;
@@ -56,7 +56,7 @@ export function TeamKalender({ monat, team, abwesenheiten, land, betrachter, heu
                     let stil: React.CSSProperties | undefined;
                     let titel: string | undefined;
                     if (a && !frei) {
-                      const art = siehtGrund(b.id) ? ARTEN[a.art] : { name: "abwesend", farbe: "#64748b", hell: "#e2e8f0" };
+                      const art = siehtGrund(b.id) && a.art ? ARTEN[a.art] : { name: "abwesend", farbe: "#64748b", hell: "#e2e8f0" };
                       const farbe = a.status === "genehmigt" ? art.farbe : art.hell;
                       stil = {
                         background: a.halbtags ? `linear-gradient(135deg, ${farbe} 50%, transparent 50%)` : farbe,

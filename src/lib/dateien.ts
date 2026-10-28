@@ -1,74 +1,62 @@
-import { randomUUID } from "node:crypto";
-import path from "node:path";
-import { eq } from "drizzle-orm";
-import { getDb } from "@/db";
-import { datei } from "@/db/schema";
-import { aktuellerSpeicher } from "./speicher";
+import { api } from "./api";
+import { supabase } from "./supabase";
 
-// Wo die Dateien liegen (Supabase Storage oder Ordner), regelt ./speicher.ts.
+// Rechnungen (finanzen/…) und Fotos (technik/…) im privaten Supabase-Speicher.
+// Wer was darf, prüfen die Speicher-Regeln in der Datenbank (supabase/migrations/0004_speicher.sql).
 
-// Kein SVG: das könnte Skripte enthalten
+const BUCKET = "dateien";
 const BILD_TYPEN = ["image/jpeg", "image/png", "image/heic", "image/webp"];
 export const ERLAUBTE_TYPEN = ["application/pdf", ...BILD_TYPEN];
-// Vercel nimmt pro Anfrage höchstens 4,5 MB an. Fotos werden schon im Browser verkleinert.
-export const MAX_GROESSE = 4 * 1024 * 1024;
+export const MAX_GROESSE = 10 * 1024 * 1024;
 
 export class DateiFehler extends Error {}
 
 export type Bereich = "finanzen" | "technik";
 
-/** Speichert eine hochgeladene Datei und gibt die ID des Datensatzes zurück. Leere Felder ergeben null. */
-export async function speichereDatei(
-  f: File | null,
-  benutzerId: string,
-  bereich: Bereich = "finanzen",
-): Promise<string | null> {
+/** Lädt eine Datei hoch, trägt sie ein und gibt die ID zurück. Leere Felder ergeben null. */
+export async function dateiHochladen(f: File | null, bereich: Bereich): Promise<string | null> {
   if (!f || f.size === 0) return null;
   if (bereich === "technik" ? !BILD_TYPEN.includes(f.type) : !ERLAUBTE_TYPEN.includes(f.type)) {
-    throw new DateiFehler(
-      bereich === "technik" ? "Hier sind nur Fotos erlaubt." : "Nur PDF oder Fotos (JPG, PNG, HEIC, WebP) sind erlaubt.",
-    );
+    throw new DateiFehler(bereich === "technik" ? "Hier sind nur Fotos erlaubt." : "Nur PDF oder Fotos (JPG, PNG, HEIC, WebP) sind erlaubt.");
   }
-  if (f.size > MAX_GROESSE) {
-    throw new DateiFehler("Die Datei ist größer als 4 MB. Bitte als kleinere PDF speichern oder ein Foto machen.");
-  }
+  if (f.size > MAX_GROESSE) throw new DateiFehler("Die Datei ist größer als 10 MB.");
 
   const jetzt = new Date();
-  const endung = path.extname(f.name).toLowerCase().replace(/[^.a-z0-9]/g, "");
-  const relativ = [
-    bereich,
-    String(jetzt.getFullYear()),
-    String(jetzt.getMonth() + 1).padStart(2, "0"),
-    `${randomUUID()}${endung}`,
-  ].join("/");
-  await aktuellerSpeicher().schreiben(relativ, Buffer.from(await f.arrayBuffer()), f.type);
-
-  const db = await getDb();
-  const [neu] = await db
-    .insert(datei)
-    .values({
-      originalName: f.name,
-      mimeType: f.type,
-      groesse: f.size,
-      speicherPfad: relativ,
-      bereich,
-      hochgeladenVon: benutzerId,
-    })
-    .returning({ id: datei.id });
-  return neu.id;
+  const endung = (f.name.match(/\.[a-z0-9]{1,5}$/i)?.[0] ?? "").toLowerCase();
+  const pfad = [bereich, jetzt.getFullYear(), String(jetzt.getMonth() + 1).padStart(2, "0"), `${crypto.randomUUID()}${endung}`].join("/");
+  const { error } = await supabase.storage.from(BUCKET).upload(pfad, await f.arrayBuffer(), { contentType: f.type });
+  if (error) throw new DateiFehler(`Hochladen fehlgeschlagen: ${error.message}`);
+  try {
+    return await api<string>("datei_registrieren", { p_pfad: pfad, p_name: f.name, p_typ: f.type, p_groesse: f.size });
+  } catch (e) {
+    await dateienEntfernen([pfad]);
+    throw e;
+  }
 }
 
-export async function ladeDatei(id: string) {
-  const db = await getDb();
-  const [eintrag] = await db.select().from(datei).where(eq(datei.id, id));
-  if (!eintrag) return null;
-  const inhalt = await aktuellerSpeicher().lesen(eintrag.speicherPfad);
-  return { eintrag, inhalt };
+/** Entfernt Dateien aus dem Speicher (nachdem die Datenbank-Einträge gelöscht wurden). Fehler werden nur protokolliert. */
+export async function dateienEntfernen(pfade: (string | null | undefined)[]) {
+  const liste = pfade.filter((p): p is string => !!p);
+  if (!liste.length) return;
+  const { error } = await supabase.storage.from(BUCKET).remove(liste);
+  if (error) console.error("Datei konnte nicht entfernt werden", error);
 }
 
-export async function loescheDatei(id: string) {
-  const db = await getDb();
-  const [eintrag] = await db.delete(datei).where(eq(datei.id, id)).returning();
-  // Fehlt die Datei im Speicher schon, ist das kein Problem – der Eintrag ist weg
-  if (eintrag) await aktuellerSpeicher().loeschen(eintrag.speicherPfad).catch((e) => console.error(e));
+/** Zeitlich begrenzte Links (1 Stunde) zum Ansehen der Dateien */
+export async function signierteUrls(pfade: string[]): Promise<Map<string, string>> {
+  if (!pfade.length) return new Map();
+  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrls(pfade, 3600);
+  if (error) throw new DateiFehler(error.message);
+  const urls = new Map<string, string>();
+  for (const d of data) if (d.path && d.signedUrl) urls.set(d.path, d.signedUrl);
+  return urls;
+}
+
+/** Öffnet eine Datei in einem neuen Tab */
+export async function dateiOeffnen(pfad: string) {
+  const fenster = window.open("", "_blank");
+  const urls = await signierteUrls([pfad]);
+  const url = urls.get(pfad);
+  if (url && fenster) fenster.location.href = url;
+  else fenster?.close();
 }

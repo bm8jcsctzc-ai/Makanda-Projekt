@@ -1,10 +1,15 @@
 import Link from "next/link";
 import { formatDatum } from "@/lib/format";
 import { EINSATZARTEN } from "@/lib/technik";
-import type { ladeKonflikte } from "@/lib/urlaub-daten";
+import { pfad } from "@/lib/pfade";
+
+export type KonfliktDaten = {
+  andere: { id: string; name: string; von: string; bis: string; status: string }[];
+  einsaetze: { id: string; datum: string; art: keyof typeof EINSATZARTEN; kunde: string }[];
+};
 
 /** Hinweise zu gleichzeitig abwesenden Kollegen und geplanten Einsätzen */
-export function Konflikte({ konflikte, teamGroesse }: { konflikte: Awaited<ReturnType<typeof ladeKonflikte>>; teamGroesse: number }) {
+export function Konflikte({ konflikte, teamGroesse }: { konflikte: KonfliktDaten; teamGroesse: number }) {
   const { andere, einsaetze } = konflikte;
   if (andere.length === 0 && einsaetze.length === 0) {
     return <p className="text-sm text-green-700">✓ Keine Überschneidungen mit Kollegen oder geplanten Einsätzen.</p>;
@@ -33,7 +38,7 @@ export function Konflikte({ konflikte, teamGroesse }: { konflikte: Awaited<Retur
           <ul className="mt-1 list-disc pl-5">
             {einsaetze.map((e) => (
               <li key={e.id}>
-                <Link className="underline" href={`/einsaetze/${e.id}`}>
+                <Link className="underline" href={pfad.einsatz(e.id)}>
                   {formatDatum(e.datum)} · {EINSATZARTEN[e.art]} bei {e.kunde}
                 </Link>
               </li>

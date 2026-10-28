@@ -1,7 +1,7 @@
 import ExcelJS from "exceljs";
 import { formatMonat } from "./format";
 import { ANLAGENTYPEN } from "./technik";
-import type { WartungsZeile } from "./wartung-daten";
+import type { WartungsZeile } from "./typen";
 import { monatsLast, naechsteMonate, wartungsStatus } from "./wartungsplan";
 
 const STATUS_TEXT = { ueberfaellig: "überfällig", bald: "bald fällig", spaeter: "", ohne: "kein Termin" };
@@ -10,7 +10,7 @@ const STATUS_TEXT = { ueberfaellig: "überfällig", bald: "bald fällig", spaete
 const alsDatum = (iso: string | null) => (iso ? new Date(`${iso}T12:00:00Z`) : null);
 
 /** Excel-Datei mit allen Wartungskunden (eine Zeile pro Anlage) und einer Monatsübersicht */
-export async function wartungsExcel(zeilen: WartungsZeile[], heute: string, vorlaufMonate: number, grenze: number | null): Promise<Buffer> {
+export async function wartungsExcel(zeilen: WartungsZeile[], heute: string, vorlaufMonate: number, grenze: number | null): Promise<Uint8Array> {
   const mappe = new ExcelJS.Workbook();
   mappe.creator = "Makanda";
   mappe.created = new Date();
@@ -93,5 +93,5 @@ export async function wartungsExcel(zeilen: WartungsZeile[], heute: string, vorl
   uebersicht.addRow({});
   uebersicht.addRow({ monat: "Überfällige Wartungen zählen in den aktuellen Monat." });
 
-  return Buffer.from(await mappe.xlsx.writeBuffer());
+  return new Uint8Array(await mappe.xlsx.writeBuffer());
 }

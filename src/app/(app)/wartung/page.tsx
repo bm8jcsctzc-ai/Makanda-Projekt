@@ -1,13 +1,18 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
+import { Laden } from "@/components/Laden";
 import { Seitenkopf } from "@/components/Seitenkopf";
-import { benoetigeBenutzer } from "@/lib/auth";
-import { ladeEinstellungen } from "@/lib/einstellungen";
+import type { Einstellungen } from "@/db/schema";
+import { api, fehlertext } from "@/lib/api";
+import { useAbfrage } from "@/lib/daten";
 import { formatDatum, formatMonat, heute } from "@/lib/format";
-import { istTestmodus } from "@/lib/mail";
+import { pfad } from "@/lib/pfade";
+import { useBenoetige } from "@/lib/sitzung";
 import { anlagenName, DARF_PLANEN, plusMonate } from "@/lib/technik";
-import { ladeWartungen, type WartungsZeile } from "@/lib/wartung-daten";
+import type { WartungsZeile } from "@/lib/typen";
 import { monatsLast, naechsteMonate, wartungsStatus } from "@/lib/wartungsplan";
-import { AufgabenKnoepfe } from "./AufgabenKnoepfe";
 
 const ZEITRAEUME = { "3": "Überfällige und nächste 3 Monate", "12": "Überfällige und nächste 12 Monate", alle: "Alle Anlagen" } as const;
 
@@ -21,12 +26,34 @@ function Kennzahl({ titel, wert, hinweis, warnung = false }: { titel: string; we
   );
 }
 
-export default async function Wartungsplan({ searchParams }: { searchParams: Promise<{ zeitraum?: string; q?: string }> }) {
-  await benoetigeBenutzer(DARF_PLANEN);
-  const { zeitraum: z = "3", q = "" } = await searchParams;
-  const zeitraum = (z in ZEITRAEUME ? z : "3") as keyof typeof ZEITRAEUME;
+/** Excel mit allen Wartungskunden im Browser erzeugen und herunterladen */
+async function excelHerunterladen(zeilen: WartungsZeile[], e: Einstellungen, stichtag: string) {
+  const { wartungsExcel } = await import("@/lib/excel");
+  const inhalt = await wartungsExcel(zeilen, stichtag, e.erinnerungVorlaufMonate, e.haeufungGrenze);
+  const url = URL.createObjectURL(
+    new Blob([inhalt as BlobPart], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
+  );
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `Wartungskunden_${stichtag}.xlsx`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export default function Wartungsplan() {
+  const b = useBenoetige(DARF_PLANEN);
+  const [zeitraum, setZeitraum] = useState<keyof typeof ZEITRAEUME>("3");
+  const [q, setQ] = useState("");
+  const [excelFehler, setExcelFehler] = useState<string>();
   const stichtag = heute();
-  const [e, alle] = await Promise.all([ladeEinstellungen(), ladeWartungen(stichtag)]);
+  const { daten, fehler } = useAbfrage(
+    () => Promise.all([api<Einstellungen>("einstellungen"), api<WartungsZeile[]>("wartungen")]),
+    [],
+    !!b,
+  );
+  if (!b) return null;
+  if (!daten) return <Laden fehler={fehler} />;
+  const [e, alle] = daten;
   const vorlauf = e.erinnerungVorlaufMonate;
 
   const mitTermin = alle.filter((w) => w.a.naechsteWartungAm);
@@ -60,15 +87,17 @@ export default async function Wartungsplan({ searchParams }: { searchParams: Pro
       <Seitenkopf
         titel="Wartungsplan"
         untertitel={`Erinnerung an Kunden ${vorlauf} Monate vor Fälligkeit`}
-        aktionen={<a className="btn-primaer" href="/wartung/export" download>⬇ Excel herunterladen</a>}
+        aktionen={
+          <button
+            type="button"
+            className="btn-primaer"
+            onClick={() => excelHerunterladen(alle, e, stichtag).catch((err) => setExcelFehler(fehlertext(err)))}
+          >
+            ⬇ Excel herunterladen
+          </button>
+        }
       />
-
-      {istTestmodus() && (
-        <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          <strong>Testmodus:</strong> E-Mails werden noch nicht verschickt, sondern nur im{" "}
-          <Link className="underline" href="/einstellungen/emails">E-Mail-Protokoll</Link> gespeichert.
-        </p>
-      )}
+      {excelFehler && <p className="fehler-box mb-4">{excelFehler}</p>}
 
       <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Kennzahl titel="Überfällig" wert={ueberfaellig.length} warnung />
@@ -129,12 +158,23 @@ export default async function Wartungsplan({ searchParams }: { searchParams: Pro
           ) : (
             <p className="fehler-box">Noch keine Büro-E-Mail eingetragen.</p>
           )}
-          <Link className="text-sm text-marke underline" href="/einstellungen/wartung">Einstellungen und Text der Erinnerung</Link>
-          <AufgabenKnoepfe testmodus={istTestmodus()} />
+          <p className="text-sm text-slate-600">
+            Die E-Mails verschickt der Automatik-Dienst (GitHub Actions). Was verschickt wurde, steht im{" "}
+            <Link className="text-marke underline" href="/einstellungen/emails/">E-Mail-Protokoll</Link>.
+          </p>
+          <Link className="text-sm text-marke underline" href="/einstellungen/wartung/">Einstellungen und Text der Erinnerung</Link>
         </section>
       </div>
 
-      <form className="karte mb-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+      <form
+        className="karte mb-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
+        onSubmit={(ev) => {
+          ev.preventDefault();
+          const f = new FormData(ev.currentTarget);
+          setZeitraum(String(f.get("zeitraum")) as keyof typeof ZEITRAEUME);
+          setQ(String(f.get("q")));
+        }}
+      >
         <div>
           <label className="feld-label" htmlFor="zeitraum">Zeitraum</label>
           <select className="eingabe" id="zeitraum" name="zeitraum" defaultValue={zeitraum}>
@@ -164,9 +204,9 @@ export default async function Wartungsplan({ searchParams }: { searchParams: Pro
                       {formatDatum(w.a.naechsteWartungAm)}
                     </span>
                     <span className="min-w-0">
-                      <Link className="font-medium text-marke hover:underline" href={`/kunden/${w.k.id}`}>{w.k.name}</Link>
+                      <Link className="font-medium text-marke hover:underline" href={pfad.kunde(w.k.id)}>{w.k.name}</Link>
                       {w.k.ort && <span className="text-slate-500"> · {w.k.ort}</span>}
-                      <Link className="block truncate text-sm text-slate-600 hover:underline" href={`/anlagen/${w.a.id}`}>{anlagenName(w.a)}</Link>
+                      <Link className="block truncate text-sm text-slate-600 hover:underline" href={pfad.anlage(w.a.id)}>{anlagenName(w.a)}</Link>
                     </span>
                     <span className="flex flex-wrap items-center gap-2 text-sm">
                       {w.geplantAm ? (
@@ -175,11 +215,14 @@ export default async function Wartungsplan({ searchParams }: { searchParams: Pro
                         <>
                           {w.erinnertAm && (
                             <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-800">
-                              erinnert {formatDatum(w.erinnertAm.toISOString())}
+                              erinnert {formatDatum(w.erinnertAm.toISOString().slice(0, 10))}
                             </span>
                           )}
                           {!w.k.email && <span className="text-xs text-slate-500">keine E-Mail</span>}
-                          <Link className="btn py-1" href={`/einsaetze/neu?kunde=${w.k.id}&anlage=${w.a.id}&datum=${w.a.naechsteWartungAm! < stichtag ? stichtag : w.a.naechsteWartungAm}`}>
+                          <Link
+                            className="btn py-1"
+                            href={pfad.einsatzNeu({ kunde: w.k.id, anlage: w.a.id, datum: w.a.naechsteWartungAm! < stichtag ? stichtag : w.a.naechsteWartungAm })}
+                          >
                             Termin planen
                           </Link>
                         </>

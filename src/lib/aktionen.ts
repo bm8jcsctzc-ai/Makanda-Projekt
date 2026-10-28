@@ -1,5 +1,5 @@
-/** Rückgabe einer Server-Aktion an ein Formular: Fehlermeldung oder nichts */
-export type FormularZustand = { fehler?: string; erfolg?: string } | undefined;
+/** Ergebnis einer Formular-Aktion: Fehlermeldung, Erfolgsmeldung oder Seite, auf die es weitergeht */
+export type FormularZustand = { fehler?: string; erfolg?: string; weiter?: string } | undefined;
 
 export function text(form: FormData, feld: string): string {
   const wert = form.get(feld);

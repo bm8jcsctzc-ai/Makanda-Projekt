@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { Anlagentyp, Pruefpunkt } from "@/db/schema";
 import type { FormularZustand } from "@/lib/aktionen";
+import { fehlertext } from "@/lib/api";
 import { ANLAGENTYPEN } from "@/lib/technik";
-import type { VorlagenDaten } from "./actions";
+import type { VorlagenDaten } from "../aktionen";
 
 const TYPEN = { pruefung: "Prüfung (i. O. / nicht i. O.)", messwert: "Messwert (Zahl)", text: "Freitext" };
 
@@ -17,6 +19,7 @@ export function VorlagenEditor({ start, speichern }: { start: VorlagenDaten; spe
   const [d, setD] = useState<VorlagenDaten>(start);
   const [meldung, setMeldung] = useState<FormularZustand>();
   const [laeuft, startTransition] = useTransition();
+  const router = useRouter();
 
   const setPunkt = (i: number, teil: Partial<Pruefpunkt>) =>
     setD((alt) => ({ ...alt, punkte: alt.punkte.map((p, j) => (j === i ? { ...p, ...teil } : p)) }));
@@ -33,7 +36,15 @@ export function VorlagenEditor({ start, speichern }: { start: VorlagenDaten; spe
       className="space-y-4"
       onSubmit={(e) => {
         e.preventDefault();
-        startTransition(async () => setMeldung(await speichern(d)));
+        startTransition(async () => {
+          try {
+            const r = await speichern(d);
+            if (r?.weiter) router.push(r.weiter);
+            else setMeldung(r);
+          } catch (fehler) {
+            setMeldung({ fehler: fehlertext(fehler) });
+          }
+        });
       }}
     >
       <div className="karte grid gap-4 sm:grid-cols-2">
@@ -101,7 +112,7 @@ export function VorlagenEditor({ start, speichern }: { start: VorlagenDaten; spe
       {meldung?.fehler && <p className="fehler-box">{meldung.fehler}</p>}
       <div className="flex gap-2">
         <button className="btn-primaer" disabled={laeuft}>{laeuft ? "Speichern …" : "Speichern"}</button>
-        <Link className="btn" href="/einstellungen/checklisten">Abbrechen</Link>
+        <Link className="btn" href="/einstellungen/checklisten/">Abbrechen</Link>
       </div>
     </form>
   );

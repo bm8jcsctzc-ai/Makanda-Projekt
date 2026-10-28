@@ -1,19 +1,22 @@
-import { asc, desc } from "drizzle-orm";
+"use client";
+
 import Link from "next/link";
+import { Laden } from "@/components/Laden";
 import { Seitenkopf } from "@/components/Seitenkopf";
-import { getDb } from "@/db";
-import { personalkosten } from "@/db/schema";
-import { benoetigeBenutzer, DARF_GEHAELTER } from "@/lib/auth";
+import { useAbfrage } from "@/lib/daten";
 import { istImMonatAktiv, personalkostenGesamt } from "@/lib/finanzen";
 import { formatDatum, formatEuro, heute } from "@/lib/format";
+import { pfad } from "@/lib/pfade";
+import { DARF_GEHAELTER } from "@/lib/rechte";
+import { useBenoetige } from "@/lib/sitzung";
+import { ladeGehaelter } from "./daten";
 
-export default async function Gehaelter() {
-  await benoetigeBenutzer(DARF_GEHAELTER);
-  const db = await getDb();
-  const alle = await db
-    .select()
-    .from(personalkosten)
-    .orderBy(asc(personalkosten.mitarbeiter), desc(personalkosten.gueltigAb));
+export default function Gehaelter() {
+  const b = useBenoetige(DARF_GEHAELTER);
+  const { daten, fehler } = useAbfrage(ladeGehaelter, [], !!b);
+  if (!b) return null;
+  if (!daten) return <Laden fehler={fehler} />;
+  const alle = daten.personal;
   const monat = heute().slice(0, 7);
   const aktuell = alle.filter((p) => istImMonatAktiv(p.gueltigAb, p.gueltigBis, monat));
   const summe = (feld: (p: (typeof alle)[number]) => number) => aktuell.reduce((s, p) => s + feld(p), 0);
@@ -23,7 +26,7 @@ export default async function Gehaelter() {
       <Seitenkopf
         titel="Gehälter"
         untertitel="Nur für den Inhaber sichtbar. Die Lohnabrechnung selbst macht weiter der Steuerberater."
-        aktionen={<Link className="btn-primaer" href="/finanzen/gehaelter/neu">+ Gehalt eintragen</Link>}
+        aktionen={<Link className="btn-primaer" href="/finanzen/gehaelter/neu/">+ Gehalt eintragen</Link>}
       />
 
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
@@ -61,7 +64,7 @@ export default async function Gehaelter() {
                 return (
                   <tr key={p.id} className={istAktuell ? "hover:bg-slate-50" : "text-slate-400 hover:bg-slate-50"}>
                     <td>
-                      <Link className="font-medium text-marke hover:underline" href={`/finanzen/gehaelter/${p.id}`}>{p.mitarbeiter}</Link>
+                      <Link className="font-medium text-marke hover:underline" href={pfad.gehalt(p.id)}>{p.mitarbeiter}</Link>
                       {p.funktion && <div className="text-xs text-slate-500">{p.funktion}</div>}
                       {!istAktuell && <div className="text-xs">nicht aktuell</div>}
                     </td>
