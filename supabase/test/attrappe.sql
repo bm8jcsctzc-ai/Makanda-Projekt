@@ -9,6 +9,10 @@ begin
 end $$;
 grant usage on schema public to anon, authenticated;
 
+-- In Supabase liegt pgcrypto im Schema extensions
+create schema extensions;
+create extension pgcrypto with schema extensions;
+
 create schema auth;
 create table auth.users (
   id uuid primary key default gen_random_uuid(),

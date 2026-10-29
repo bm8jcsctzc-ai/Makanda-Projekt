@@ -8,7 +8,7 @@
 //
 // Nur für Tests gedacht: Passwörter werden einfach gehasht, E-Mails nicht bestätigt.
 
-import { createHash, randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import path from "node:path";
@@ -69,15 +69,16 @@ function json(res: ServerResponse, status: number, daten: unknown) {
   res.end(JSON.stringify(daten));
 }
 
-function hash(passwort: string, salz = randomBytes(16).toString("hex")) {
-  return `${salz}:${scryptSync(passwort, salz, 32).toString("hex")}`;
+// Passwörter wie in Supabase mit bcrypt (pgcrypto) – so passen sie auch zu public.passwort_setzen
+async function hash(passwort: string) {
+  const r = await db.query<{ h: string }>("select extensions.crypt($1, extensions.gen_salt('bf', 4)) as h", [passwort]);
+  return r.rows[0].h;
 }
 
-function passwortStimmt(passwort: string, gespeichert: string | null) {
+async function passwortStimmt(passwort: string, gespeichert: string | null) {
   if (!gespeichert) return false;
-  const [salz, wert] = gespeichert.split(":");
-  const vergleich = scryptSync(passwort, salz, 32);
-  return timingSafeEqual(vergleich, Buffer.from(wert, "hex"));
+  const r = await db.query<{ ok: boolean }>("select extensions.crypt($1, $2) = $2 as ok", [passwort, gespeichert]);
+  return r.rows[0].ok;
 }
 
 type AuthBenutzer = { id: string; email: string; raw_user_meta_data: Record<string, unknown>; created_at: string };
@@ -153,7 +154,7 @@ async function auth(req: IncomingMessage, res: ServerResponse, url: URL, body: B
     if (await authBenutzer("email", email)) return authFehler(res, 422, "user_already_exists", "User already registered");
     const r = await db.query<AuthBenutzer>(
       "insert into auth.users (email, encrypted_password, raw_user_meta_data) values ($1, $2, $3) returning id, email, raw_user_meta_data, created_at",
-      [email, hash(daten.password), JSON.stringify(daten.data ?? {})],
+      [email, await hash(daten.password), JSON.stringify(daten.data ?? {})],
     );
     return json(res, 200, await sitzung(r.rows[0]));
   }
@@ -167,7 +168,7 @@ async function auth(req: IncomingMessage, res: ServerResponse, url: URL, body: B
       return json(res, 200, await sitzung(u));
     }
     const u = await authBenutzer("email", String(daten.email ?? "").trim().toLowerCase());
-    if (!u || !passwortStimmt(String(daten.password ?? ""), u.encrypted_password)) {
+    if (!u || !(await passwortStimmt(String(daten.password ?? ""), u.encrypted_password))) {
       return authFehler(res, 400, "invalid_credentials", "Invalid login credentials");
     }
     return json(res, 200, await sitzung(u));
@@ -179,7 +180,7 @@ async function auth(req: IncomingMessage, res: ServerResponse, url: URL, body: B
     if (!u) return authFehler(res, 401, "bad_jwt", "invalid JWT");
     if (req.method === "PUT" && daten.password) {
       if (String(daten.password).length < 6) return authFehler(res, 422, "weak_password", "Password should be at least 6 characters.");
-      await db.query("update auth.users set encrypted_password = $1 where id = $2", [hash(daten.password), id]);
+      await db.query("update auth.users set encrypted_password = $1 where id = $2", [await hash(daten.password), id]);
     }
     return json(res, 200, benutzerAntwort(u));
   }

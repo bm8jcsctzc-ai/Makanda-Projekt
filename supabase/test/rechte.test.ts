@@ -86,6 +86,40 @@ describe("Anmeldung und Einladungen", () => {
   });
 });
 
+describe("Benutzer bearbeiten", () => {
+  const passwortStimmt = async (id: string, pw: string) =>
+    (await db.query<{ ok: boolean }>("select encrypted_password = extensions.crypt($1, encrypted_password) as ok from auth.users where id = $2", [pw, id])).rows[0].ok;
+
+  it("Inhaber ändert Name, E-Mail und Passwort; danach gilt die neue Anmeldung", async () => {
+    const id = await einladen("Tim Test", "tim@example.com", "monteur");
+    await rpc(db, inhaber, "benutzer_daten_aendern", { p_id: id, p_name: " Tim Neu ", p_email: "Tim.Neu@Example.com" });
+    expect(await rpc(db, id, "ich")).toMatchObject({ name: "Tim Neu", email: "tim.neu@example.com" });
+    expect((await db.query<{ email: string }>("select email from auth.users where id = $1", [id])).rows[0].email).toBe("tim.neu@example.com");
+
+    await rpc(db, inhaber, "passwort_setzen", { p_id: id, p_passwort: "NeuesPasswort1" });
+    expect(await passwortStimmt(id, "NeuesPasswort1")).toBe(true);
+    expect(await passwortStimmt(id, "falsch-falsch")).toBe(false);
+  });
+
+  it("prüft Eingaben: doppelte E-Mail, kurzes Passwort, leerer Name", async () => {
+    await expect(rpc(db, inhaber, "benutzer_daten_aendern", { p_id: monteur, p_name: "Jonas", p_email: "LUCA@example.com" })).rejects.toThrow("schon verwendet");
+    await expect(rpc(db, inhaber, "benutzer_daten_aendern", { p_id: monteur, p_name: "Jonas", p_email: "keine-adresse" })).rejects.toThrow("gültige E-Mail");
+    await expect(rpc(db, inhaber, "benutzer_daten_aendern", { p_id: monteur, p_name: " ", p_email: "jonas@example.com" })).rejects.toThrow("Namen");
+    await expect(rpc(db, inhaber, "passwort_setzen", { p_id: monteur, p_passwort: "kurz" })).rejects.toThrow("10 Zeichen");
+  });
+
+  it("nur der Inhaber darf fremde Zugänge ändern; jeder ändert seinen eigenen Namen", async () => {
+    for (const wer of [buero, monteur]) {
+      await expect(rpc(db, wer, "passwort_setzen", { p_id: kollege, p_passwort: "Uebernahme123" })).rejects.toThrow("Berechtigung");
+      await expect(rpc(db, wer, "benutzer_daten_aendern", { p_id: kollege, p_name: "X", p_email: "x@example.com" })).rejects.toThrow("Berechtigung");
+    }
+    await expect(rpc(db, null, "passwort_setzen", { p_id: kollege, p_passwort: "Uebernahme123" })).rejects.toThrow();
+    await rpc(db, monteur, "mein_name_aendern", { p_name: "Jonas W." });
+    expect(await rpc(db, monteur, "ich")).toMatchObject({ name: "Jonas W." });
+    await rpc(db, monteur, "mein_name_aendern", { p_name: "Jonas Weber" });
+  });
+});
+
 describe("Tabellen sind direkt gesperrt", () => {
   it.each(["profil", "rechnung", "personalkosten", "kunde", "einsatz", "abwesenheit", "einladung"])("%s", async (tabelle) => {
     await expect(als(db, inhaber, (tx) => tx.query(`select * from public.${tabelle}`))).rejects.toThrow(/permission denied/);

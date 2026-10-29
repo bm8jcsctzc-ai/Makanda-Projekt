@@ -163,6 +163,45 @@ const ok = (c, m) => { if (!c) throw new Error("FEHLER: " + m); console.log("✓
   await p.click("button:text('Zurückziehen')");
   await p.waitForSelector("text=Offene Einladungen", { state: "detached" });
   ok(true, "offene Einladung wird angezeigt und kann zurückgezogen werden");
+
+  // Zugangsdaten ändern: Inhaber setzt neue E-Mail und neues Passwort, die Person ändert ihren Namen selbst
+  await einladen(browser, p, B, "Tina Test", "tina@example.com", "monteur");
+  await p.goto(B + "/einstellungen/benutzer/");
+  await bereit(p);
+  const tina = p.locator("div.border-b", { hasText: "Tina Test" });
+  await tina.locator("summary").click();
+  await tina.locator("input[name=email]").fill("tina.neu@example.com");
+  await tina.locator("button:text('Name und E-Mail speichern')").click();
+  await tina.locator("text=Name und E-Mail gespeichert").waitFor();
+  await tina.locator("input[name=passwort]").fill("kurz");
+  await tina.locator("input[name=passwort]").evaluate((e) => e.removeAttribute("minLength"));
+  await tina.locator("button:text('Passwort setzen')").click();
+  await tina.locator("text=mindestens 10 Zeichen").waitFor();
+  await tina.locator("input[name=passwort]").fill("TinasNeuesPw1");
+  await tina.locator("button:text('Passwort setzen')").click();
+  await tina.locator("text=Neues Passwort gesetzt").waitFor();
+  ok(await p.isVisible("text=tina.neu@example.com"), "Inhaber ändert E-Mail und Passwort eines Zugangs");
+
+  const t = await (await browser.newContext()).newPage();
+  await t.goto(B + "/login/");
+  await t.fill("#email", "tina@example.com");
+  await t.fill("#passwort", "Startpasswort1");
+  await t.click("button");
+  await t.waitForSelector(".fehler-box");
+  await t.fill("#email", "tina.neu@example.com");
+  await t.fill("#passwort", "TinasNeuesPw1");
+  await t.click("button");
+  await t.waitForURL(B + "/");
+  ok(true, "Anmeldung nur noch mit neuer E-Mail und neuem Passwort");
+  await t.goto(B + "/konto/");
+  await bereit(t);
+  await t.fill("#name", "Tina Neumann");
+  await t.click("button:text('Name speichern')");
+  await t.waitForSelector("text=Dein Name ist gespeichert");
+  await t.goto(B + "/");
+  await bereit(t);
+  ok(await t.isVisible("text=Hallo Tina"), "Mitarbeiter ändert den eigenen Namen");
+  await t.context().close();
   // Letzten Inhaber nicht deaktivierbar
   const meineZeile = p.locator("form", { hasText: "(du)" });
   await meineZeile.locator("select").selectOption("monteur");

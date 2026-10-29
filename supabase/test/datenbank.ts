@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { PGlite } from "@electric-sql/pglite";
+import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
 
 // Postgres im Arbeitsspeicher mit nachgebauter Supabase-Umgebung und allen Migrationen.
 // Grundlage für die Datenbank-Tests und die lokale Supabase-Attrappe.
@@ -8,7 +9,7 @@ import { PGlite } from "@electric-sql/pglite";
 const ORDNER = path.join(__dirname, "..");
 
 export async function neueDatenbank(datenordner?: string): Promise<PGlite> {
-  const db = new PGlite(datenordner);
+  const db = await PGlite.create({ dataDir: datenordner, extensions: { pgcrypto } });
   const schonDa = await db.query<{ da: boolean }>("select to_regclass('auth.users') is not null as da");
   if (!schonDa.rows[0].da) {
     await db.exec(readFileSync(path.join(ORDNER, "test", "attrappe.sql"), "utf8"));

@@ -8,12 +8,13 @@ import { api } from "@/lib/api";
 import { useAbfrage } from "@/lib/daten";
 import { formatDatumZeit } from "@/lib/format";
 import { DARF_BENUTZER, ROLLEN_NAMEN } from "@/lib/rechte";
-import { useBenoetige } from "@/lib/sitzung";
-import { benutzerAendern, einladen, einladungLoeschen } from "../aktionen";
+import { useBenoetige, useSitzung } from "@/lib/sitzung";
+import { benutzerAendern, benutzerDatenAendern, einladen, einladungLoeschen, passwortSetzen } from "../aktionen";
 import { BenutzerZeile, Einladen } from "./Formulare";
 
 export default function BenutzerVerwaltung() {
   const ich = useBenoetige(DARF_BENUTZER);
+  const { neuLaden: sitzungNeuLaden } = useSitzung();
   const { daten, fehler, neuLaden } = useAbfrage(
     () => api<{ benutzer: Benutzer[]; einladungen: Einladung[] }>("benutzer_liste"),
     [],
@@ -29,7 +30,19 @@ export default function BenutzerVerwaltung() {
         <>
           <div className="karte mb-6 py-0 sm:py-0">
             {daten.benutzer.map((b) => (
-              <BenutzerZeile key={b.id} benutzer={b} aktion={benutzerAendern.bind(null, b.id)} binIchSelbst={b.id === ich.id} />
+              <BenutzerZeile
+                key={b.id}
+                benutzer={b}
+                aktion={benutzerAendern.bind(null, b.id)}
+                datenAendern={async (z, f) => {
+                  const r = await benutzerDatenAendern(b.id, z, f);
+                  neuLaden();
+                  if (b.id === ich.id) await sitzungNeuLaden();
+                  return r;
+                }}
+                passwortSetzen={passwortSetzen.bind(null, b.id)}
+                binIchSelbst={b.id === ich.id}
+              />
             ))}
           </div>
 

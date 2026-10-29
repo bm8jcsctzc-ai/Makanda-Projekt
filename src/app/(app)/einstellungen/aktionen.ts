@@ -1,6 +1,7 @@
 import type { Anlagentyp, Pruefpunkt, Rolle } from "@/db/schema";
 import { optionalerText, text, type FormularZustand } from "@/lib/aktionen";
 import { api } from "@/lib/api";
+import { MIN_PASSWORT_LAENGE } from "@/lib/anmeldung";
 import { BUNDESLAENDER } from "@/lib/feiertage";
 
 export type VorlagenDaten = {
@@ -101,4 +102,19 @@ export async function einladen(_: FormularZustand, form: FormData): Promise<Form
 
 export async function einladungLoeschen(id: string) {
   await api("einladung_loeschen", { p_id: id });
+}
+
+export async function benutzerDatenAendern(id: string, _: FormularZustand, form: FormData): Promise<FormularZustand> {
+  const name = text(form, "name");
+  const email = text(form, "email").toLowerCase();
+  if (!name || !email) return { fehler: "Bitte Name und E-Mail angeben." };
+  await api("benutzer_daten_aendern", { p_id: id, p_name: name, p_email: email });
+  return { erfolg: "Name und E-Mail gespeichert. Die neue E-Mail gilt ab sofort für die Anmeldung." };
+}
+
+export async function passwortSetzen(id: string, _: FormularZustand, form: FormData): Promise<FormularZustand> {
+  const passwort = String(form.get("passwort") ?? "");
+  if (passwort.length < MIN_PASSWORT_LAENGE) return { fehler: `Das Passwort muss mindestens ${MIN_PASSWORT_LAENGE} Zeichen haben.` };
+  await api("passwort_setzen", { p_id: id, p_passwort: passwort });
+  return { erfolg: "Neues Passwort gesetzt. Gib es der Person persönlich weiter – sie kann es danach unter „Mein Konto“ selbst ändern." };
 }
