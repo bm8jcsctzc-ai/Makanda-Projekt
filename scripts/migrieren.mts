@@ -7,11 +7,12 @@ import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import postgres from "postgres";
 
-const url = process.env.DATABASE_URL;
+const url = process.env.DATABASE_URL?.trim();
 if (!url) {
   console.error("DATABASE_URL fehlt (GitHub › Settings › Secrets and variables › Actions).");
   process.exit(1);
 }
+pruefeAdresse(url);
 
 // Der „Transaction pooler“ (Port 6543) kann keine größeren Skripte – dann den „Session pooler“ (Port 5432) nehmen
 const verbindung = url.replace(/(pooler\.supabase\.com):6543\b/, "$1:5432");
@@ -30,6 +31,36 @@ try {
     });
     console.log(`✓ ${datei}`);
   }
+} catch (fehler) {
+  if ((fehler as { code?: string }).code === "28P01") {
+    console.error("✗ Supabase lehnt das Passwort ab. Bitte in Supabase das Datenbank-Passwort neu setzen und DATABASE_URL bei GitHub aktualisieren.");
+    process.exitCode = 1;
+  } else {
+    throw fehler;
+  }
 } finally {
   await sql.end();
+}
+
+/** Häufige Fehler beim Abschreiben der Adresse erkennen – ohne das Passwort auszugeben */
+function pruefeAdresse(adresse: string) {
+  let u: URL;
+  try {
+    u = new URL(adresse);
+  } catch {
+    console.error("DATABASE_URL ist keine gültige Adresse. Sie muss mit postgresql:// beginnen.");
+    process.exit(1);
+  }
+  const passwort = decodeURIComponent(u.password);
+  console.log(`Verbinde als ${decodeURIComponent(u.username)} mit ${u.hostname}:${u.port || 5432} (Passwort: ${passwort.length} Zeichen)`);
+  const probleme = [
+    /[[\]]/.test(passwort) && "Das Passwort enthält noch eckige Klammern [ ] – die gehören nicht dazu.",
+    /YOUR-PASSWORD/i.test(passwort) && "Statt des Passworts steht noch YOUR-PASSWORD in der Adresse.",
+    /\s/.test(passwort) && "Das Passwort enthält ein Leerzeichen.",
+    !passwort && "In der Adresse fehlt das Passwort (zwischen : und @).",
+    u.hostname.includes("pooler.supabase.com") && !u.username.includes(".") &&
+      "Der Benutzername muss beim Pooler postgres.<Projekt-ID> heißen.",
+  ].filter(Boolean);
+  for (const p of probleme) console.error(`✗ ${p}`);
+  if (probleme.length) process.exit(1);
 }
