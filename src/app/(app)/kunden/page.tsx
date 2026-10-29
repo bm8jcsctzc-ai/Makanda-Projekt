@@ -26,7 +26,14 @@ function Inhalt() {
     <>
       <Seitenkopf
         titel="Kunden"
-        aktionen={DARF_PLANEN.includes(b.rolle) && <Link className="btn-primaer" href="/kunden/neu/">+ Kunde anlegen</Link>}
+        aktionen={
+          DARF_PLANEN.includes(b.rolle) && (
+            <>
+              <Link className="btn" href="/kunden/import/">Aus TAIFUN importieren</Link>
+              <Link className="btn-primaer" href="/kunden/neu/">+ Kunde anlegen</Link>
+            </>
+          )
+        }
       />
       <form
         className="mb-4 flex gap-2"

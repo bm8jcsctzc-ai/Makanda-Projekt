@@ -120,6 +120,34 @@ describe("Benutzer bearbeiten", () => {
   });
 });
 
+describe("Kunden-Import", () => {
+  it("legt neu an und aktualisiert beim zweiten Import, ohne Daten zu löschen", async () => {
+    const erst = [
+      { taifun_kundennr: "K-100", name: "Import Eins", plz: "72072", ort: "Tübingen", telefon: "07071 1" },
+      { taifun_kundennr: null, name: "Ohne Nummer", plz: "70173", ort: "Stuttgart" },
+      { taifun_kundennr: null, name: "  ", ort: "leer" },
+    ];
+    expect(await rpc(db, buero, "kunden_importieren", { p_kunden: erst })).toEqual({ neu: 2, aktualisiert: 0 });
+    const id = (await db.query<{ id: string }>("select id from kunde where taifun_kundennr = 'K-100'")).rows[0].id;
+    await db.query("update kunde set hinweise = 'Hund im Haus' where id = $1", [id]);
+
+    const zweit = [
+      { taifun_kundennr: "K-100", name: "Import Eins GmbH", plz: "72072", ort: "", telefon: "07071 2" },
+      { taifun_kundennr: null, name: "ohne nummer", plz: "70173", ort: "Stuttgart-Mitte" },
+    ];
+    expect(await rpc(db, buero, "kunden_importieren", { p_kunden: zweit })).toEqual({ neu: 0, aktualisiert: 2 });
+    const k = (await db.query<{ name: string; ort: string; telefon: string; hinweise: string }>("select * from kunde where id = $1", [id])).rows[0];
+    expect(k).toMatchObject({ name: "Import Eins GmbH", ort: "Tübingen", telefon: "07071 2", hinweise: "Hund im Haus" });
+    expect((await db.query("select 1 from kunde where lower(name) = 'ohne nummer'")).rows).toHaveLength(1);
+  });
+
+  it("nur Inhaber und Büro dürfen importieren", async () => {
+    await expect(rpc(db, monteur, "kunden_importieren", { p_kunden: [{ name: "X" }] })).rejects.toThrow("Berechtigung");
+    await expect(rpc(db, null, "kunden_importieren", { p_kunden: [{ name: "X" }] })).rejects.toThrow();
+    await expect(rpc(db, buero, "kunden_importieren", { p_kunden: { name: "X" } })).rejects.toThrow("Ungültige Daten");
+  });
+});
+
 describe("Tabellen sind direkt gesperrt", () => {
   it.each(["profil", "rechnung", "personalkosten", "kunde", "einsatz", "abwesenheit", "einladung"])("%s", async (tabelle) => {
     await expect(als(db, inhaber, (tx) => tx.query(`select * from public.${tabelle}`))).rejects.toThrow(/permission denied/);
