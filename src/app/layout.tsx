@@ -5,6 +5,8 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Makanda – Betriebs-App",
   description: "Betriebs-App für den SHK-Betrieb",
+  // Name unter dem Symbol auf dem Home-Bildschirm (iPhone/iPad)
+  appleWebApp: { title: "Makanda", capable: true, statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {

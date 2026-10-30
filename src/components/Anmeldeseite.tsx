@@ -1,8 +1,12 @@
+import { Logo } from "./Logo";
+
 export function Anmeldeseite({ titel, children }: { titel: string; children: React.ReactNode }) {
   return (
     <main className="flex min-h-dvh items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm">
-        <p className="mb-6 text-center text-lg font-semibold text-marke">Makanda</p>
+        <div className="mb-6 flex justify-center">
+          <Logo hoehe={72} />
+        </div>
         <div className="karte">
           <h1 className="mb-4 text-xl font-semibold">{titel}</h1>
           {children}

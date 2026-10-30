@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Laden } from "@/components/Laden";
+import { Logo } from "@/components/Logo";
 import { Navigation, type NavPunkt } from "@/components/Navigation";
 import { DARF_FINANZEN, ROLLEN_NAMEN } from "@/lib/rechte";
 import { useSitzung } from "@/lib/sitzung";
@@ -38,8 +39,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-dvh">
       <header className="border-b border-slate-200 bg-flaeche print:hidden">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
-          <span className="font-semibold text-marke">Makanda</span>
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 sm:gap-x-6">
+          <Link href="/" aria-label="Startseite" className="shrink-0">
+            <Logo hoehe={36} />
+          </Link>
           <div className="order-3 w-full sm:order-none sm:w-auto sm:flex-1">
             <Navigation punkte={punkte} />
           </div>
