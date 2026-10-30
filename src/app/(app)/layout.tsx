@@ -1,18 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Laden } from "@/components/Laden";
 import { Logo } from "@/components/Logo";
 import { Navigation, type NavPunkt } from "@/components/Navigation";
-import { DARF_FINANZEN, ROLLEN_NAMEN } from "@/lib/rechte";
+import { EinstellungenSymbol, ProfilSymbol } from "@/components/Symbole";
+import { DARF_FINANZEN } from "@/lib/rechte";
 import { useSitzung } from "@/lib/sitzung";
 import { DARF_PLANEN } from "@/lib/technik";
 
+const symbolKnopf = (aktiv: boolean) =>
+  `flex size-10 items-center justify-center rounded-full ${aktiv ? "bg-marke text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`;
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { profil, angemeldet, laedt, abmelden } = useSitzung();
+  const { profil, angemeldet, laedt } = useSitzung();
   const router = useRouter();
+  const pfad = usePathname();
 
   useEffect(() => {
     if (!laedt && !profil) router.replace("/login/");
@@ -33,7 +38,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     { href: "/kunden/", titel: "Kunden" },
     { href: "/urlaub/", titel: "Urlaub" },
     ...(DARF_FINANZEN.includes(profil.rolle) ? [{ href: "/finanzen/", titel: "Finanzen" }] : []),
-    ...(planer ? [{ href: "/einstellungen/", titel: "Einstellungen" }] : []),
   ];
 
   return (
@@ -46,13 +50,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="order-3 w-full sm:order-none sm:w-auto sm:flex-1">
             <Navigation punkte={punkte} />
           </div>
-          <div className="ml-auto flex items-center gap-3 text-sm">
-            <Link href="/konto/" className="text-slate-600 hover:text-slate-900">
-              {profil.name} <span className="text-slate-400">· {ROLLEN_NAMEN[profil.rolle]}</span>
+          <div className="ml-auto flex items-center gap-1">
+            <Link href="/konto/" className={symbolKnopf(pfad.startsWith("/konto"))} title={`Mein Konto (${profil.name})`} aria-label="Mein Konto">
+              <ProfilSymbol />
             </Link>
-            <button className="text-slate-600 underline hover:text-slate-900" onClick={() => abmelden().then(() => router.replace("/login/"))}>
-              Abmelden
-            </button>
+            {planer && (
+              <Link href="/einstellungen/" className={symbolKnopf(pfad.startsWith("/einstellungen"))} title="Einstellungen" aria-label="Einstellungen">
+                <EinstellungenSymbol />
+              </Link>
+            )}
           </div>
         </div>
       </header>
