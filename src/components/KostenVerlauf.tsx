@@ -71,8 +71,8 @@ export function KostenVerlauf({ werte: alleWerte, mitPersonal }: { werte: Monats
         <svg width={breite} height={HOEHE} viewBox={`0 0 ${breite} ${HOEHE}`} className="block max-w-full" role="img" aria-label={`Kosten der letzten ${werte.length} Monate`}>
           {ticks.map((t) => (
             <g key={t}>
-              <line x1={RAND.links} x2={breite - RAND.rechts} y1={y(t)} y2={y(t)} stroke="#e2e8f0" strokeWidth={1} />
-              <text x={RAND.links - 6} y={y(t)} dy="0.32em" textAnchor="end" fontSize={11} fill="#64748b">
+              <line x1={RAND.links} x2={breite - RAND.rechts} y1={y(t)} y2={y(t)} strokeWidth={1} className="stroke-slate-200" />
+              <text x={RAND.links - 6} y={y(t)} dy="0.32em" textAnchor="end" fontSize={11} className="fill-slate-500">
                 {kompakt(t)}
               </text>
             </g>
@@ -100,7 +100,7 @@ export function KostenVerlauf({ werte: alleWerte, mitPersonal }: { werte: Monats
                     />
                   );
                 })}
-                <text x={x + balkenB / 2} y={HOEHE - 8} textAnchor="middle" fontSize={11} fill="#64748b">
+                <text x={x + balkenB / 2} y={HOEHE - 8} textAnchor="middle" fontSize={11} className="fill-slate-500">
                   {formatMonatKurz(w.monat)}
                 </text>
                 {/* Trefferfläche größer als der Balken */}
@@ -121,7 +121,7 @@ export function KostenVerlauf({ werte: alleWerte, mitPersonal }: { werte: Monats
 
         {aktiv !== null && (
           <div
-            className="pointer-events-none absolute top-0 z-10 w-48 rounded-lg border border-slate-200 bg-white p-3 text-sm shadow-lg"
+            className="pointer-events-none absolute top-0 z-10 w-48 rounded-lg border border-slate-200 bg-flaeche p-3 text-sm shadow-lg"
             style={{
               left: `clamp(0px, calc(${((RAND.links + (aktiv + 0.5) * spalte) / breite) * 100}% - 6rem), calc(100% - 12rem))`,
             }}

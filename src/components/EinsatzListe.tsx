@@ -12,7 +12,7 @@ export function EinsatzListe({ zeilen, mitMonteur = true }: { zeilen: EinsatzZei
         <li key={e.id}>
           <Link
             href={pfad.einsatz(e.id)}
-            className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm hover:border-marke/40 hover:bg-blue-50/40"
+            className="flex items-start gap-3 rounded-xl border border-slate-200 bg-flaeche p-3 shadow-sm hover:border-marke/40 hover:bg-blue-50/40"
           >
             <span className="w-12 shrink-0 pt-0.5 text-sm font-semibold tabular-nums text-slate-700">{e.uhrzeit ?? "–"}</span>
             <span className="min-w-0 flex-1">

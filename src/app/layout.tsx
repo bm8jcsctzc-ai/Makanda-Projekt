@@ -10,6 +10,12 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // Farbe der Browser-Leiste (Safari) passend zum hellen bzw. dunklen Modus
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f8fafc" },
+    { media: "(prefers-color-scheme: dark)", color: "#020617" },
+  ],
+  colorScheme: "light dark",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

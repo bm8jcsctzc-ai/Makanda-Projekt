@@ -70,7 +70,7 @@ function Inhalt() {
           <ul className="space-y-2">
             {offen.map((a) => (
               <li key={a.id}>
-                <Link href={pfad.abwesenheit(a.id)} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white p-3 hover:bg-amber-100/50">
+                <Link href={pfad.abwesenheit(a.id)} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-flaeche p-3 hover:bg-amber-100/50">
                   <span>
                     <strong>{a.name}</strong> · {formatDatum(a.von)} – {formatDatum(a.bis)}
                   </span>

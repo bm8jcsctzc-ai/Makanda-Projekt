@@ -2,10 +2,11 @@ import type { Abwesenheit, Abwesenheitsart, Abwesenheitsstatus, Rolle } from "@/
 import { istArbeitstag, type Bundesland } from "./feiertage";
 
 export const ARTEN: Record<Abwesenheitsart, { name: string; farbe: string; hell: string }> = {
-  urlaub: { name: "Urlaub", farbe: "#2a78d6", hell: "#cde2fb" },
-  krank: { name: "Krank", farbe: "#e34948", hell: "#f9d4d4" },
-  berufsschule: { name: "Berufsschule", farbe: "#6250d6", hell: "#dcd8f6" },
-  sonstiges: { name: "Sonstiges", farbe: "#64748b", hell: "#e2e8f0" },
+  // „hell“ = halbtransparent, damit es auf hellem und dunklem Hintergrund passt
+  urlaub: { name: "Urlaub", farbe: "#2a78d6", hell: "#2a78d64d" },
+  krank: { name: "Krank", farbe: "#e34948", hell: "#e349484d" },
+  berufsschule: { name: "Berufsschule", farbe: "#6250d6", hell: "#6250d64d" },
+  sonstiges: { name: "Sonstiges", farbe: "#64748b", hell: "#64748b4d" },
 };
 
 export const STATUS: Record<Abwesenheitsstatus, { text: string; klasse: string }> = {

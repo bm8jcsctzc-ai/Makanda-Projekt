@@ -23,7 +23,7 @@ export function FotoGalerie({ fotos, benutzer, nachher }: { fotos: FotoMitPfad[]
       {fotos.map((f) => {
         const url = urls?.get(f.pfad);
         return (
-          <li key={f.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+          <li key={f.id} className="overflow-hidden rounded-lg border border-slate-200 bg-flaeche">
             <a href={url} target="_blank" className="block aspect-[4/3] bg-slate-100">
               {url && (
                 // eslint-disable-next-line @next/next/no-img-element -- geschützte Datei mit zeitlich begrenztem Link

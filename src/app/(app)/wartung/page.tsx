@@ -197,7 +197,7 @@ export default function Wartungsplan() {
               <h2 className={`mb-2 text-sm font-semibold ${titel === "Überfällig" ? "text-red-700" : "text-slate-600"}`}>
                 {titel} · {zeilen.length}
               </h2>
-              <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
+              <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-flaeche">
                 {zeilen.map((w) => (
                   <li key={w.a.id} className="grid gap-2 p-3 sm:grid-cols-[7rem_1fr_auto] sm:items-center">
                     <span className={`text-sm font-medium tabular-nums ${titel === "Überfällig" ? "text-red-700" : ""}`}>

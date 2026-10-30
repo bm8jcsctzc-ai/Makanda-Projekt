@@ -24,11 +24,11 @@ export function TeamKalender({ monat, team, abwesenheiten, land, betrachter, heu
 
   return (
     <div>
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-flaeche">
         <table className="w-full border-collapse text-xs">
           <thead>
             <tr>
-              <th className="sticky left-0 z-10 min-w-28 border-b border-slate-200 bg-white px-2 py-1 text-left font-medium text-slate-500">Mitarbeiter</th>
+              <th className="sticky left-0 z-10 min-w-28 border-b border-slate-200 bg-flaeche px-2 py-1 text-left font-medium text-slate-500">Mitarbeiter</th>
               {tageImMonat.map((d) => {
                 const frei = istWochenende(d) || !!feiertag(d, land);
                 return (
@@ -49,14 +49,14 @@ export function TeamKalender({ monat, team, abwesenheiten, land, betrachter, heu
               const eigene = abwesenheiten.filter((a) => a.benutzerId === b.id);
               return (
                 <tr key={b.id}>
-                  <th className="sticky left-0 z-10 border-b border-slate-100 bg-white px-2 py-1.5 text-left font-medium whitespace-nowrap text-slate-700">{b.name}</th>
+                  <th className="sticky left-0 z-10 border-b border-slate-100 bg-flaeche px-2 py-1.5 text-left font-medium whitespace-nowrap text-slate-700">{b.name}</th>
                   {tageImMonat.map((d) => {
                     const frei = istWochenende(d) || !!feiertag(d, land);
                     const a = eigene.find((x) => x.von <= d && x.bis >= d);
                     let stil: React.CSSProperties | undefined;
                     let titel: string | undefined;
                     if (a && !frei) {
-                      const art = siehtGrund(b.id) && a.art ? ARTEN[a.art] : { name: "abwesend", farbe: "#64748b", hell: "#e2e8f0" };
+                      const art = siehtGrund(b.id) && a.art ? ARTEN[a.art] : { ...ARTEN.sonstiges, name: "abwesend" };
                       const farbe = a.status === "genehmigt" ? art.farbe : art.hell;
                       stil = {
                         background: a.halbtags ? `linear-gradient(135deg, ${farbe} 50%, transparent 50%)` : farbe,
@@ -90,7 +90,7 @@ export function TeamKalender({ monat, team, abwesenheiten, land, betrachter, heu
           </li>
         ))}
         <li className="flex items-center gap-1.5">
-          <span className="inline-block size-3 rounded-sm" style={{ background: "#cde2fb", outline: "1.5px dashed #2a78d6", outlineOffset: "-2px" }} />
+          <span className="inline-block size-3 rounded-sm" style={{ background: ARTEN.urlaub.hell, outline: `1.5px dashed ${ARTEN.urlaub.farbe}`, outlineOffset: "-2px" }} />
           beantragt
         </li>
         <li className="flex items-center gap-1.5">

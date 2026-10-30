@@ -111,7 +111,7 @@ export function EntscheidungFormular({ genehmigen, ablehnen, fertig }: { genehmi
       {!g.zustand?.erfolg && !a.zustand?.erfolg && (
         <div className="grid gap-3 sm:grid-cols-[auto_1fr] sm:items-start">
           <form {...g.formularProps}>
-            <button className="btn-primaer w-full bg-green-700 hover:bg-green-800" disabled={g.laeuft || a.laeuft}>✓ Genehmigen</button>
+            <button className="btn-primaer w-full bg-green-600 hover:bg-green-600/90" disabled={g.laeuft || a.laeuft}>✓ Genehmigen</button>
           </form>
           <form {...a.formularProps} className="flex flex-wrap gap-2">
             <input className="eingabe min-w-48 flex-1" name="kommentar" placeholder="Grund für die Ablehnung" aria-label="Grund für die Ablehnung" />

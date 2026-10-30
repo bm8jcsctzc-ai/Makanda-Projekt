@@ -92,7 +92,7 @@ export default function Heute() {
       )}
 
       {abwesendHeute.length > 0 && (
-        <p className="rounded-xl border border-slate-200 bg-white p-3 text-sm">
+        <p className="rounded-xl border border-slate-200 bg-flaeche p-3 text-sm">
           <span className="font-medium">Heute abwesend:</span>{" "}
           {abwesendHeute.map((a) => `${a.name} (${a.art ? ARTEN[a.art].name : "abwesend"}${a.status === "beantragt" ? ", beantragt" : ""})`).join(", ")}
         </p>

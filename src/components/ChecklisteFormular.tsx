@@ -9,7 +9,7 @@ import { istAusserhalb, parseZahl } from "@/lib/technik";
 const PRUEF_OPTIONEN = [
   { wert: "io", text: "i. O.", aktiv: "bg-green-600 text-white border-green-600" },
   { wert: "nio", text: "nicht i. O.", aktiv: "bg-red-600 text-white border-red-600" },
-  { wert: "entfaellt", text: "entfällt", aktiv: "bg-slate-600 text-white border-slate-600" },
+  { wert: "entfaellt", text: "entfällt", aktiv: "bg-slate-500 text-white border-slate-500" },
 ];
 
 const zahl = (z: number) => z.toLocaleString("de-DE");
@@ -91,7 +91,7 @@ export function ChecklisteFormular({ ergebnisId, punkte, start, abgeschlossen }:
                         role="radio"
                         aria-checked={a.wert === o.wert}
                         onClick={() => setze(p.id, { wert: a.wert === o.wert ? "" : o.wert })}
-                        className={`rounded-lg border px-2 py-3 text-sm font-medium ${a.wert === o.wert ? o.aktiv : "border-slate-300 bg-white text-slate-700"}`}
+                        className={`rounded-lg border px-2 py-3 text-sm font-medium ${a.wert === o.wert ? o.aktiv : "border-slate-300 bg-flaeche text-slate-700"}`}
                       >
                         {o.text}
                       </button>
@@ -131,7 +131,7 @@ export function ChecklisteFormular({ ergebnisId, punkte, start, abgeschlossen }:
         })}
       </ol>
 
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-2px_8px_rgba(0,0,0,0.06)] backdrop-blur">
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-flaeche/95 px-4 py-3 shadow-[0_-2px_8px_rgba(0,0,0,0.06)] backdrop-blur">
         <div className="mx-auto max-w-6xl space-y-2">
           {meldung?.fehler && <p className="fehler-box">{meldung.fehler}</p>}
           {meldung?.erfolg && !geaendert && <p className="text-sm text-green-700">✓ {meldung.erfolg}</p>}
