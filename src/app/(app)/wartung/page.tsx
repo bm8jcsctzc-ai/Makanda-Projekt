@@ -8,6 +8,7 @@ import type { Einstellungen } from "@/db/schema";
 import { api, fehlertext } from "@/lib/api";
 import { useAbfrage } from "@/lib/daten";
 import { formatDatum, formatMonat, heute } from "@/lib/format";
+import { herunterladen } from "@/lib/herunterladen";
 import { pfad } from "@/lib/pfade";
 import { useBenoetige } from "@/lib/sitzung";
 import { anlagenName, DARF_PLANEN, plusMonate } from "@/lib/technik";
@@ -29,15 +30,7 @@ function Kennzahl({ titel, wert, hinweis, warnung = false }: { titel: string; we
 /** Excel mit allen Wartungskunden im Browser erzeugen und herunterladen */
 async function excelHerunterladen(zeilen: WartungsZeile[], e: Einstellungen, stichtag: string) {
   const { wartungsExcel } = await import("@/lib/excel");
-  const inhalt = await wartungsExcel(zeilen, stichtag, e.erinnerungVorlaufMonate, e.haeufungGrenze);
-  const url = URL.createObjectURL(
-    new Blob([inhalt as BlobPart], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
-  );
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `Wartungskunden_${stichtag}.xlsx`;
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  herunterladen(await wartungsExcel(zeilen, stichtag, e.erinnerungVorlaufMonate, e.haeufungGrenze), `Wartungskunden_${stichtag}.xlsx`);
 }
 
 export default function Wartungsplan() {

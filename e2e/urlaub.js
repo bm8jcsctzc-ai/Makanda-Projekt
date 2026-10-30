@@ -9,6 +9,7 @@ async function bereit(seite) {
   await seite.waitForSelector("[aria-busy=true]", { state: "detached", timeout: 10000 }).catch(() => {});
 }
 const { einladen } = require("./einladen");
+const ExcelJS = require("exceljs");
 const S = process.argv[2] || require("node:os").tmpdir();
 require("node:fs").mkdirSync(path.join(S, "shots"), { recursive: true });
 const B = process.env.APP_URL || "http://localhost:3100";
@@ -174,6 +175,22 @@ async function login(browser, email, pw, mobil = false) {
   await maxZeile.locator("text=✓").waitFor();
   await p.reload();
   ok(norm(await p.locator("tr", { hasText: "Max Monteur" }).textContent()).includes("22,5 Tage"), "Übertrag 2,5 Tage erhöht den Rest auf 22,5");
+
+  // ---- Excel-Auszug ----
+  await bereit(p);
+  const [download] = await Promise.all([p.waitForEvent("download"), p.click("button:text('Excel 2030')")]);
+  ok(download.suggestedFilename() === "Urlaub_2030.xlsx", "Excel-Auszug wird heruntergeladen");
+  const datei = path.join(S, "urlaub-test.xlsx");
+  await download.saveAs(datei);
+  const mappe = new ExcelJS.Workbook();
+  await mappe.xlsx.readFile(datei);
+  const kontenBlatt = mappe.getWorksheet("Urlaubskonten 2030");
+  const maxExcel = [];
+  kontenBlatt.eachRow((r) => { if (r.getCell(1).value === "Max Monteur") maxExcel.push(...r.values.slice(1)); });
+  ok(JSON.stringify(maxExcel) === JSON.stringify(["Max Monteur", 30, 2.5, 32.5, 10, 0, 22.5]), "Excel: Konto von Max stimmt mit der Seite überein " + JSON.stringify(maxExcel));
+  const liste = [];
+  mappe.getWorksheet("Abwesenheiten 2030").eachRow((r, i) => { if (i > 1) liste.push(`${r.getCell(1).value}:${r.getCell(2).value}`); });
+  ok(liste.includes("Max Monteur:Urlaub") && liste.includes("Max Monteur:Krank"), "Excel: Abwesenheiten mit Grund (Urlaub, Krank) " + liste.join(", "));
 
   // ---- Antrag zurückziehen ----
   await m.goto(B + "/urlaub/neu");
